@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mini Picnic Organizer</title>
+  <style>
+    :root{
+      --sky:#dff5ff;
+      --grass1:#a9e190;
+      --grass2:#88cf6a;
+      --blanket-red:#ff6b6b;
+      --blanket-cream:#fff1dc;
+      --panel:#ffffffcc;
+      --text:#24323f;
+      --shadow:0 10px 30px rgba(0,0,0,.15);
+      --good:#2f9e44;
+      --bad:#e03131;
+      --gold:#f59f00;
+    }
+
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{
+      margin:0;
+      height:100%;
+      overflow:hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:linear-gradient(var(--sky), #effbff 40%, #bff0b1 40%, #8fd26f 100%);
+      touch-action:none;
+      user-select:none;
+    }
+
+    #game{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      overflow:hidden;
+    }
+
+    .hill{
+      position:absolute;
+      bottom:0;
+      width:140%;
+      height:38%;
+      left:-20%;
+      background:radial-gradient(circle at 30% 20%, #baf1a1 0 20%, transparent 21%),
+                 radial-gradient(circle at 70% 30%, #b8ef9f 0 15%, transparent 16%),
+                 linear-gradient(180deg,var(--grass1),var(--grass2));
+      border-top-left-radius:50% 40%;
+      border-top-right-radius:50% 40%;
+      z-index:0;
+    }
+
+    .sun{
+      position:absolute;
+      top:24px;
+      right:28px;
+      width:76px;
+      height:76px;
+      border-radius:50%;
+      background:radial-gradient(circle at 30% 30%, #fff8cc, #ffd43b 65%, #f59f00 100%);
+      box-shadow:0 0 40px #ffd43b88;
+      z-index:0;
+    }
+
+    .cloud{
+      position:absolute;
+      width:120px;
+      height:44px;
+      background:#fff;
+      border-radius:999px;
+      box-shadow:40px -12px 0 8px #fff, 78px 0 0 0 #fff, 18px -18px 0 4px #fff;
+      opacity:.85;
+      animation:floatCloud linear infinite;
+      z-index:0;
+    }
+    @keyframes floatCloud{
+      from{transform:translateX(-160px)}
+      to{transform:translateX(calc(100vw + 220px))}
+    }
+
+    #ui{
+      position:absolute;
+      top:12px;
+      left:12px;
+      right:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      z-index:20;
+      pointer-events:none;
+    }
+
+    .panel{
+      background:var(--panel);
+      backdrop-filter: blur(6px);
+      border:1px solid rgba(255,255,255,.7);
+      border-radius:20px;
+      box-shadow:var(--shadow);
+      padding:10px 14px;
+      pointer-events:auto;
+    }
+
+    .left-ui{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-width:min(540px, 68vw);
+    }
+
+    .title{
+      font-weight:900;
+      font-size:clamp(18px, 2.5vw, 28px);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .subtitle{
+      font-size:13px;
+      opacity:.85;
+      line-height:1.3;
+    }
+
+    .stats{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .pill{
+      background:#fff;
+      border-radius:999px;
+      padding:7px 12px;
+      font-weight:800;
+      font-size:14px;
+      box-shadow: inset 0 0 0 1px #ffffff, 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .controls{
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button{
+      border:none;
+      border-radius:14px;
+      padding:10px 14px;
+      background:#fff;
+      font-weight:800;
+      font-size:14px;
+      color:var(--text);
+      box-shadow:var(--shadow);
+      cursor:pointer;
+    }
+    button:active{transform:scale(.97)}
+    .primary{background:linear-gradient(180deg,#fff8db,#ffe066)}
+    .danger{background:linear-gradient(180deg,#ffe3e3,#ffc9c9)}
+
+    #playfield{
+      position:absolute;
+      inset:0;
+      z-index:1;
+    }
+
+    #blanket{
+      position:absolute;
+      left:50%;
+      top:58%;
+      transform:translate(-50%,-50%);
+      width:min(720px, 88vw);
+      height:min(390px, 44vh);
+      border-radius:24px;
+      overflow:hidden;
+      background:
+        linear-gradient(90deg,
+          var(--blanket-red) 0 12.5%,
+          var(--blanket-cream) 12.5% 25%,
+          var(--blanket-red) 25% 37.5%,
+          var(--blanket-cream) 37.5% 50%,
+          var(--blanket-red) 50% 62.5%,
+          var(--blanket-cream) 62.5% 75%,
+          var(--blanket-red) 75% 87.5%,
+          var(--blanket-cream) 87.5% 100%);
+      box-shadow:0 18px 40px rgba(84,46,30,.28), inset 0 0 0 6px rgba(255,255,255,.18);
+      border:5px solid rgba(255,255,255,.35);
+    }
+    #blanket::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(180deg,
+          transparent 0 12.5%,
+          rgba(255,255,255,.3) 12.5% 14.5%,
+          transparent 14.5% 25%,
+          rgba(255,255,255,.3) 25% 27%,
+          transparent 27% 37.5%,
+          rgba(255,255,255,.3) 37.5% 39.5%,
+          transparent 39.5% 50%,
+          rgba(255,255,255,.3) 50% 52%,
+          transparent 52% 62.5%,
+          rgba(255,255,255,.3) 62.5% 64.5%,
+          transparent 64.5% 75%,
+          rgba(255,255,255,.3) 75% 77%,
+          transparent 77% 87.5%,
+          rgba(255,255,255,.3) 87.5% 89.5%,
+          transparent 89.5% 100%);
+      mix-blend-mode:soft-light;
+      pointer-events:none;
+    }
+
+    #zones{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+
+    .zone{
+      position:absolute;
+      border:3px dashed rgba(36,50,63,.23);
+      border-radius:18px;
+      background:rgba(255,255,255,.15);
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      padding:8px;
+      font-size:12px;
+      font-weight:800;
+      color:rgba(36,50,63,.75);
+      transition:.18s ease;
+    }
+    .zone.good{box-shadow:0 0 0 4px rgba(47,158,68,.18); border-color:rgba(47,158,68,.5)}
+    .zone.bad{box-shadow:0 0 0 4px rgba(224,49,49,.15); border-color:rgba(224,49,49,.45)}
+
+    .item{
+      position:absolute;
+      width:72px;
+      height:72px;
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:38px;
+      background:linear-gradient(180deg,#ffffffee,#f4f7f9ee);
+      box-shadow:0 12px 18px rgba(0,0,0,.15);
+      border:2px solid rgba(255,255,255,.9);
+      cursor:grab;
+      touch-action:none;
+      transform:translate(-50%,-50%);
+      transition:box-shadow .15s, transform .06s;
+      z-index:5;
+    }
+    .item.dragging{
+      cursor:grabbing;
+      z-index:30;
+      box-shadow:0 18px 26px rgba(0,0,0,.25);
+      transform:translate(-50%,-50%) scale(1.08);
+    }
+    .item.locked{
+      box-shadow:0 10px 18px rgba(47,158,68,.28);
+      background:linear-gradient(180deg,#ffffff,#eefbef);
+    }
+    .item .mini{
+      position:absolute;
+      bottom:4px;
+      right:6px;
+      font-size:10px;
+      font-weight:900;
+      opacity:.65;
+    }
+
+    .wind{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:6;
+      opacity:.85;
+    }
+    .gust{
+      position:absolute;
+      width:140px;
+      height:50px;
+      border-top:4px solid rgba(255,255,255,.75);
+      border-radius:50%;
+      filter:drop-shadow(0 4px 6px rgba(255,255,255,.4));
+      animation:gustMove linear forwards;
+    }
+    @keyframes gustMove{
+      from{transform:translateX(-160px)}
+      to{transform:translateX(calc(100vw + 200px))}
+    }
+
+    .ant{
+      position:absolute;
+      width:26px;
+      height:18px;
+      z-index:7;
+      pointer-events:none;
+      transform:translate(-50%,-50%);
+      font-size:22px;
+      filter:drop-shadow(0 3px 2px rgba(0,0,0,.15));
+    }
+
+    .dangerRing{
+      position:absolute;
+      width:90px;
+      height:90px;
+      border-radius:50%;
+      border:3px dashed rgba(224,49,49,.5);
+      animation:pulse 1s infinite;
+      pointer-events:none;
+      z-index:4;
+    }
+    @keyframes pulse{
+      0%{transform:translate(-50%,-50%) scale(.8); opacity:.95}
+      100%{transform:translate(-50%,-50%) scale(1.15); opacity:0}
+    }
+
+    .particle{
+      position:absolute;
+      pointer-events:none;
+      z-index:40;
+      animation:pop .8s forwards ease-out;
+      font-weight:900;
+    }
+    @keyframes pop{
+      0%{transform:translate(-50%,-50%) scale(.6); opacity:0}
+      15%{opacity:1}
+      100%{transform:translate(-50%,-110%) scale(1.2); opacity:0}
+    }
+
+    #toast{
+      position:absolute;
+      left:50%;
+      bottom:16px;
+      transform:translateX(-50%);
+      z-index:50;
+      background:#ffffffdd;
+      backdrop-filter: blur(8px);
+      border-radius:16px;
+      padding:10px 16px;
+      box-shadow:var(--shadow);
+      font-weight:900;
+      opacity:0;
+      pointer-events:none;
+      transition:.25s ease;
+    }
+    #toast.show{opacity:1}
+
+    #overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(20,28,36,.45);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:100;
+    }
+    .card{
+      width:min(720px, 92vw);
+      background:linear-gradient(180deg,#ffffff,#f8fbff);
+      border-radius:28px;
+      padding:22px;
+      box-shadow:0 26px 60px rgba(0,0,0,.25);
+      text-align:center;
+      border:1px solid rgba(255,255,255,.7);
+    }
+    .card h1{
+      margin:0 0 8px;
+      font-size:clamp(28px, 5vw, 44px);
+    }
+    .card p{
+      margin:8px auto;
+      line-height:1.5;
+      max-width:60ch;
+    }
+    .legend{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+      gap:10px;
+      margin:18px 0;
+      text-align:left;
+    }
+    .legend div{
+      background:#f6f9fc;
+      border-radius:18px;
+      padding:12px;
+      font-weight:700;
+    }
+    .big-btn{
+      margin-top:14px;
+      padding:14px 20px;
+      border-radius:18px;
+      font-size:18px;
+      background:linear-gradient(180deg,#ffd43b,#fab005);
+    }
+
+    .footerNote{
+      margin-top:12px;
+      opacity:.7;
+      font-size:13px;
+    }
+
+    @media (max-width:700px){
+      #ui{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .controls{
+        justify-content:flex-start;
+      }
+      #blanket{
+        width:92vw;
+        height:42vh;
+        top:61%;
+      }
+      .item{
+        width:62px;
+        height:62px;
+        font-size:33px;
+      }
+      .title{font-size:20px}
+      .subtitle{font-size:12px}
+      .panel{padding:10px 12px}
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div class="sun"></div>
+    <div class="cloud" style="top:55px; left:-180px; animation-duration:30s;"></div>
+    <div class="cloud" style="top:110px; left:-260px; transform:scale(.8); animation-duration:42s;"></div>
+    <div class="cloud" style="top:160px; left:-320px; transform:scale(1.1); animation-duration:36s;"></div>
+    <div class="hill"></div>
+
+    <div id="ui">
+      <div class="left-ui">
+        <div class="panel">
+          <div class="title">🧺 Mini Picnic Organizer</div>
+          <div class="subtitle">
+            Pack the picnic onto the blanket before wind, ants, and rolling fruit mess it up.
+            Put every item in its matching picnic zone.
+          </div>
+        </div>
+        <div class="stats">
+          <div class="pill">⏱️ Time: <span id="time">60</span>s</div>
+          <div class="pill">⭐ Score: <span id="score">0</span></div>
+          <div class="pill">✅ Packed: <span id="packed">0</span>/<span id="total">0</span></div>
+          <div class="pill">🍃 Wind: <span id="windLevel">Breezy</span></div>
+          <div class="pill">🐜 Ants: <span id="antLevel">Sleepy</span></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="pauseBtn">⏸️ Pause</button>
+        <button id="shuffleBtn">🍎 Scatter Fruit</button>
+        <button id="restartBtn" class="danger">🔁 Restart</button>
+      </div>
+    </div>
+
+    <div id="playfield">
+      <div id="blanket">
+        <div id="zones"></div>
+      </div>
+    </div>
+
+    <div class="wind" id="windLayer"></div>
+    <div id="toast"></div>
+
+    <div id="overlay">
+      <div class="card">
+        <h1>🧺 Picnic time!</h1>
+        <p>
+          Drag each picnic item onto its correct spot on the blanket.
+          Wind gusts will shove loose items, ants will steal unattended snacks,
+          and fruit can roll away if left out in the open.
+        </p>
+
+        <div class="legend">
+          <div>🥪 Food goes in the <b>Meal Zone</b></div>
+          <div>🍎 Fruit goes in the <b>Fruit Bowl</b></div>
+          <div>🧃 Drinks go in the <b>Drinks Area</b></div>
+          <div>🍽️ Tools go in the <b>Picnic Tools</b> spot</div>
+        </div>
+
+        <button id="startBtn" class="big-btn">Start Organizing</button>
+        <div class="footerNote">Works on phone, tablet, and desktop.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const game = document.getElementById("game");
+    const blanket = document.getElementById("blanket");
+    const zonesEl = document.getElementById("zones");
+    const windLayer = document.getElementById("windLayer");
+    const overlay = document.getElementById("overlay");
+    const toast = document.getElementById("toast");
+
+    const timeEl = document.getElementById("time");
+    const scoreEl = document.getElementById("score");
+    const packedEl = document.getElementById("packed");
+    const totalEl = document.getElementById("total");
+    const windLevelEl = document.getElementById("windLevel");
+    const antLevelEl = document.getElementById("antLevel");
+
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const shuffleBtn = document.getElementById("shuffleBtn");
+
+    const ITEM_DEFS = [
+      { id:"sandwich", emoji:"🥪", type:"meal", label:"Sandwich" },
+      { id:"cupcake", emoji:"🧁", type:"meal", label:"Cupcake" },
+      { id:"cheese", emoji:"🧀", type:"meal", label:"Cheese" },
+      { id:"apple", emoji:"🍎", type:"fruit", label:"Apple", rolling:true },
+      { id:"orange", emoji:"🍊", type:"fruit", label:"Orange", rolling:true },
+      { id:"grapes", emoji:"🍇", type:"fruit", label:"Grapes", rolling:true },
+      { id:"juice", emoji:"🧃", type:"drink", label:"Juice" },
+      { id:"tea", emoji:"🫖", type:"drink", label:"Tea" },
+      { id:"plate", emoji:"🍽️", type:"tool", label:"Plate" },
+      { id:"fork", emoji:"🍴", type:"tool", label:"Forks" }
+    ];
+
+    const ZONES = [
+      { type:"meal", label:"Meal Zone", x:6,  y:8,  w:38, h:36 },
+      { type:"fruit", label:"Fruit Bowl", x:56, y:8,  w:26, h:28 },
+      { type:"drink", label:"Drinks Area", x:56, y:46, w:26, h:34 },
+      { type:"tool", label:"Picnic Tools", x:12, y:56, w:26, h:22 }
+    ];
+
+    let items = [];
+    let zones = [];
+    let ants = [];
+    let dangerRings = [];
+    let drag = null;
+
+    let score = 0;
+    let packed = 0;
+    let total = ITEM_DEFS.length;
+    let timeLeft = 60;
+    let running = false;
+    let paused = false;
+    let gameLoopId = null;
+    let timerId = null;
+    let windStrength = 0.35;
+    let antAggro = 0.22;
+    let lastTs = 0;
+    let gustTimer = 0;
+    let antSpawnTimer = 0;
+    let fruitRollTimer = 0;
+
+    totalEl.textContent = total;
+
+    function rand(min,max){ return Math.random()*(max-min)+min; }
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=>toast.classList.remove("show"), 1000);
+    }
+
+    function particle(x,y,text, size=28){
+      const p = document.createElement("div");
+      p.className = "particle";
+      p.textContent = text;
+      p.style.left = x + "px";
+      p.style.top = y + "px";
+      p.style.fontSize = size + "px";
+      game.appendChild(p);
+      setTimeout(()=>p.remove(), 800);
+    }
+
+    function updateUI(){
+      timeEl.textContent = timeLeft;
+      scoreEl.textContent = score;
+      packedEl.textContent = packed;
+      windLevelEl.textContent =
+        windStrength < 0.4 ? "Breezy" :
+        windStrength < 0.75 ? "Gusty" : "Wild";
+      antLevelEl.textContent =
+        antAggro < 0.3 ? "Sleepy" :
+        antAggro < 0.6 ? "Busy" : "Swarming";
+      pauseBtn.textContent = paused ? "▶️ Resume" : "⏸️ Pause";
+    }
+
+    function blanketRect(){
+      return blanket.getBoundingClientRect();
+    }
+
+    function zoneRectPercentToPx(z){
+      const br = blanketRect();
+      return {
+        x: br.left + br.width * z.x / 100,
+        y: br.top + br.height * z.y / 100,
+        w: br.width * z.w / 100,
+        h: br.height * z.h / 100
+      };
+    }
+
+    function createZones(){
+      zonesEl.innerHTML = "";
+      zones = ZONES.map(z=>{
+        const el = document.createElement("div");
+        el.className = "zone";
+        el.textContent = z.label;
+        el.style.left = z.x + "%";
+        el.style.top = z.y + "%";
+        el.style.width = z.w + "%";
+        el.style.height = z.h + "%";
+        zonesEl.appendChild(el);
+        return { ...z, el };
+      });
+    }
+
+    function scatterPosition(side="around"){
+      const g = game.getBoundingClientRect();
+      const b = blanketRect();
+      let x,y;
+
+      if (side === "around"){
+        const region = Math.floor(rand(0,4));
+        if(region===0){ x = rand(40, g.width-40); y = rand(b.bottom + 20, g.height - 40); }
+        if(region===1){ x = rand(40, g.width-40); y = rand(80, b.top - 30); }
+        if(region===2){ x = rand(20, b.left - 20); y = rand(b.top, b.bottom); }
+        if(region===3){ x = rand(b.right + 20, g.width - 20); y = rand(b.top, b.bottom); }
+      } else {
+        x = rand(60, g.width-60);
+        y = rand(110, g.height-60);
+      }
+
+      return { x, y };
+    }
+
+    function createItems(){
+      items.forEach(i=>i.el.remove());
+      items = [];
+
+      ITEM_DEFS.forEach(def=>{
+        const pos = scatterPosition("around");
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `${def.emoji}<div class="mini">${def.label}</div>`;
+        el.style.left = pos.x + "px";
+        el.style.top = pos.y + "px";
+        game.appendChild(el);
+
+        const item = {
+          ...def,
+          el,
+          x: pos.x,
+          y: pos.y,
+          vx: rand(-20,20),
+          vy: rand(-10,10),
+          packed: false,
+          targetZone: def.type,
+          threatened: false
+        };
+        items.push(item);
+
+        el.addEventListener("pointerdown", e=>startDrag(e, item));
+      });
+    }
+
+    function startDrag(e, item){
+      if(!running || paused || item.packed) return;
+      drag = {
+        item,
+        pointerId: e.pointerId,
+        offsetX: e.clientX - item.x,
+        offsetY: e.clientY - item.y
+      };
+      item.el.classList.add("dragging");
+      try{ item.el.setPointerCapture(e.pointerId); }catch{}
+    }
+
+    window.addEventListener("pointermove", e=>{
+      if(!drag || paused) return;
+      if(e.pointerId !== drag.pointerId) return;
+      const item = drag.item;
+      item.x = clamp(e.clientX - drag.offsetX, 30, window.innerWidth - 30);
+      item.y = clamp(e.clientY - drag.offsetY, 90, window.innerHeight - 30);
+      placeItem(item);
+      highlightZones(item);
+    });
+
+    window.addEventListener("pointerup", e=>{
+      if(!drag) return;
+      if(e.pointerId !== drag.pointerId) return;
+      const item = drag.item;
+      item.el.classList.remove("dragging");
+      try{ item.el.releasePointerCapture(e.pointerId); }catch{}
+      dropItem(item);
+      clearZoneHighlights();
+      drag = null;
+    });
+
+    function placeItem(item){
+      item.el.style.left = item.x + "px";
+      item.el.style.top = item.y + "px";
+    }
+
+    function clearZoneHighlights(){
+      zones.forEach(z=>z.el.classList.remove("good","bad"));
+    }
+
+    function highlightZones(item){
+      zones.forEach(z=>{
+        const hit = pointInRect(item.x, item.y, zoneRectPercentToPx(z));
+        z.el.classList.toggle("good", hit && z.type === item.targetZone);
+        z.el.classList.toggle("bad", hit && z.type !== item.targetZone);
+      });
+    }
+
+    function pointInRect(x,y,r){
+      return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+    }
+
+    function isInsideBlanket(item){
+      const br = blanketRect();
+      return item.x > br.left && item.x < br.right && item.y > br.top && item.y < br.bottom;
+    }
+
+    function dropItem(item){
+      let snapped = false;
+      zones.forEach(z=>{
+        const r = zoneRectPercentToPx(z);
+        if(pointInRect(item.x, item.y, r)){
+          if(z.type === item.targetZone){
+            item.packed = true;
+            item.vx = 0; item.vy = 0;
+            item.x = clamp(item.x, r.x + 34, r.x + r.w - 34);
+            item.y = clamp(item.y, r.y + 34, r.y + r.h - 34);
+            item.el.classList.add("locked");
+            snapped = true;
+            score += 100;
+            packed += 1;
+            particle(item.x, item.y, "✨", 30);
+            showToast(`${item.label} packed!`);
+          } else {
+            score = Math.max(0, score - 25);
+            particle(item.x, item.y, "❌", 24);
+            showToast(`Wrong spot for ${item.label}`);
+          }
+        }
+      });
+
+      if(!snapped){
+        if(isInsideBlanket(item)){
+          showToast(`${item.label} is on the blanket, but not organized yet`);
+        } else {
+          score = Math.max(0, score - 5);
+        }
+      }
+
+      placeItem(item);
+      updateUI();
+      checkWin();
+    }
+
+    function spawnGust(){
+      const g = document.createElement("div");
+      g.className = "gust";
+      g.style.top = rand(130, window.innerHeight - 100) + "px";
+      g.style.left = "-160px";
+      g.style.animationDuration = rand(1.8, 3.2) + "s";
+      windLayer.appendChild(g);
+
+      const gust = {
+        x: -160,
+        y: parseFloat(g.style.top),
+        speed: rand(360, 560),
+        power: rand(.8,1.2) * windStrength
+      };
+
+      const iv = setInterval(()=>{
+        if(!running || paused){ return; }
+        gust.x += gust.speed * 0.016;
+        items.forEach(it=>{
+          if(it.packed || (drag && drag.item === it)) return;
+          const dy = Math.abs(it.y - gust.y);
+          const dx = Math.abs(it.x - gust.x);
+          if(dy < 70 && dx < 160){
+            it.vx += (2.2 + Math.random()*2) * gust.power;
+            it.vy += rand(-1.1,1.1) * gust.power;
+            if(Math.random() < .35){
+              particle(it.x + rand(-8,8), it.y + rand(-8,8), "🍃", 16);
+            }
+          }
+        });
+      }, 16);
+
+      setTimeout(()=>{
+        clearInterval(iv);
+        g.remove();
+      }, 3500);
+    }
+
+    function addDangerRing(item){
+      const ring = document.createElement("div");
+      ring.className = "dangerRing";
+      ring.style.left = item.x + "px";
+      ring.style.top = item.y + "px";
+      game.appendChild(ring);
+      setTimeout(()=>ring.remove(), 1000);
+    }
+
+    function spawnAnt(){
+      const vulnerable = items.filter(i=>!i.packed && i.type !== "tool");
+      if(!vulnerable.length) return;
+      const target = vulnerable[Math.floor(Math.random()*vulnerable.length)];
+
+      const el = document.createElement("div");
+      el.className = "ant";
+      el.textContent = "🐜";
+      game.appendChild(el);
+
+      const startFromLeft = Math.random() < 0.5;
+      const ant = {
+        el,
+        x: startFromLeft ? -30 : window.innerWidth + 30,
+        y: target.y + rand(-50,50),
+        speed: rand(50, 88) + antAggro*60,
+        target
+      };
+      ants.push(ant);
+      addDangerRing(target);
+    }
+
+    function updateAnts(dt){
+      ants = ants.filter(ant=>{
+        if(!ant.target || ant.target.packed){
+          ant.el.remove();
+          return false;
+        }
+
+        const dx = ant.target.x - ant.x;
+        const dy = ant.target.y - ant.y;
+        const dist = Math.hypot(dx,dy) || 1;
+        ant.x += (dx/dist) * ant.speed * dt;
+        ant.y += (dy/dist) * ant.speed * dt;
+        ant.el.style.left = ant.x + "px";
+        ant.el.style.top = ant.y + "px";
+
+        if(dist < 26){
+          if(!ant.target.packed && (!drag || drag.item !== ant.target)){
+            ant.target.x += rand(-90,90);
+            ant.target.y += rand(-70,70);
+            ant.target.vx += rand(-120,120);
+            ant.target.vy += rand(-70,70);
+            ant.target.x = clamp(ant.target.x, 30, window.innerWidth - 30);
+            ant.target.y = clamp(ant.target.y, 90, window.innerHeight - 30);
+            placeItem(ant.target);
+            score = Math.max(0, score - 35);
+            particle(ant.target.x, ant.target.y, "🐜", 24);
+            showToast(`Ants bothered the ${ant.target.label}!`);
+            updateUI();
+          }
+          ant.el.remove();
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function fruitScatter(){
+      const fruits = items.filter(i=>!i.packed && i.rolling);
+      if(!fruits.length) return;
+      fruits.forEach(f=>{
+        if(isInsideBlanket(f) && Math.random() < 0.75){
+          const angle = rand(0, Math.PI*2);
+          const force = rand(70,150);
+          f.vx += Math.cos(angle) * force;
+          f.vy += Math.sin(angle) * force * 0.55;
+          particle(f.x, f.y, "💨", 18);
+        }
+      });
+      showToast("Rolling fruit!");
+    }
+
+    function updateItems(dt){
+      const br = blanketRect();
+
+      items.forEach(item=>{
+        if(item.packed) return;
+        if(drag && drag.item === item) return;
+
+        item.vy += 18 * dt;
+        item.x += item.vx * dt;
+        item.y += item.vy * dt;
+
+        item.vx *= 0.986;
+        item.vy *= 0.992;
+
+        if(item.x < 30){ item.x = 30; item.vx *= -0.45; }
+        if(item.x > window.innerWidth - 30){ item.x = window.innerWidth - 30; item.vx *= -0.45; }
+        if(item.y < 100){ item.y = 100; item.vy *= -0.3; }
+        if(item.y > window.innerHeight - 28){ item.y = window.innerHeight - 28; item.vy *= -0.4; item.vx *= 0.95; }
+
+        // blanket friction / subtle bounce
+        const inside = isInsideBlanket(item);
+        if(inside){
+          item.vx *= item.rolling ? 0.995 : 0.978;
+          item.vy *= 0.95;
+        }
+
+        // fruit rolls more easily on/near blanket
+        if(item.rolling){
+          item.vx += Math.sign(item.vx || rand(-1,1)) * 4 * dt;
+        }
+
+        placeItem(item);
+      });
+    }
+
+    function checkWin(){
+      if(packed >= total){
+        endGame(true);
+      }
+    }
+
+    function endGame(won){
+      running = false;
+      clearInterval(timerId);
+      cancelAnimationFrame(gameLoopId);
+
+      const stars =
+        score >= 900 ? "⭐⭐⭐" :
+        score >= 650 ? "⭐⭐" : "⭐";
+
+      overlay.innerHTML = `
+        <div class="card">
+          <h1>${won ? "🎉 Picnic saved!" : "😵 Picnic chaos!"}</h1>
+          <p>
+            ${won
+              ? "You packed everything before nature could ruin lunch."
+              : "Time ran out before the picnic was fully organized."}
+          </p>
+          <div class="legend">
+            <div>⭐ Final Score: <b>${score}</b></div>
+            <div>✅ Packed: <b>${packed}/${total}</b></div>
+            <div>🏅 Rating: <b>${stars}</b></div>
+            <div>🍃 Final Wind: <b>${windLevelEl.textContent}</b></div>
+          </div>
+          <button id="playAgainBtn" class="big-btn">Play Again</button>
+          <div class="footerNote">Tip: secure food first when ants get busy.</div>
+        </div>
+      `;
+      overlay.style.display = "flex";
+      document.getElementById("playAgainBtn").onclick = ()=>startGame();
+    }
+
+    function resetState(){
+      score = 0;
+      packed = 0;
+      timeLeft = 60;
+      windStrength = 0.35;
+      antAggro = 0.22;
+      paused = false;
+      running = false;
+      drag = null;
+      ants.forEach(a=>a.el.remove());
+      ants = [];
+      document.querySelectorAll(".dangerRing").forEach(n=>n.remove());
+      windLayer.innerHTML = "";
+      updateUI();
+    }
+
+    function startGame(){
+      overlay.style.display = "none";
+      resetState();
+      createZones();
+      createItems();
+      running = true;
+      lastTs = performance.now();
+
+      clearInterval(timerId);
+      timerId = setInterval(()=>{
+        if(!running || paused) return;
+        timeLeft--;
+        if(timeLeft <= 20){
+          windStrength = 0.65;
+          antAggro = 0.5;
+        }
+        if(timeLeft <= 10){
+          windStrength = 0.95;
+          antAggro = 0.78;
+        }
+        updateUI();
+        if(timeLeft <= 0){
+          timeLeft = 0;
+          updateUI();
+          endGame(false);
+        }
+      }, 1000);
+
+      gameLoopId = requestAnimationFrame(loop);
+      showToast("Organize the picnic!");
+    }
+
+    function loop(ts){
+      if(!running) return;
+      const dt = Math.min(0.033, (ts - lastTs) / 1000);
+      lastTs = ts;
+
+      if(!paused){
+        gustTimer += dt;
+        antSpawnTimer += dt;
+        fruitRollTimer += dt;
+
+        if(gustTimer > rand(2.8, 4.6)){
+          spawnGust();
+          gustTimer = 0;
+        }
+        if(antSpawnTimer > rand(3.2, 5.4) - antAggro*1.6){
+          spawnAnt();
+          antSpawnTimer = 0;
+        }
+        if(fruitRollTimer > rand(5.5, 8.5)){
+          fruitScatter();
+          fruitRollTimer = 0;
+        }
+
+        updateItems(dt);
+        updateAnts(dt);
+      }
+
+      gameLoopId = requestAnimationFrame(loop);
+    }
+
+    function shuffleFruitManual(){
+      if(!running || paused) return;
+      fruitScatter();
+    }
+
+    pauseBtn.addEventListener("click", ()=>{
+      if(!running) return;
+      paused = !paused;
+      showToast(paused ? "Paused" : "Back to it!");
+      updateUI();
+    });
+
+    restartBtn.addEventListener("click", ()=>{
+      startGame();
+    });
+
+    shuffleBtn.addEventListener("click", shuffleFruitManual);
+    startBtn.addEventListener("click", startGame);
+
+    window.addEventListener("resize", ()=>{
+      createZones();
+      items.forEach(item=>{
+        item.x = clamp(item.x, 30, window.innerWidth - 30);
+        item.y = clamp(item.y, 90, window.innerHeight - 30);
+        placeItem(item);
+      });
+    });
+
+    updateUI();
+  </script>
+</body>
+</html>

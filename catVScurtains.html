@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Cat vs Curtains</title>
+  <style>
+    :root{
+      --bg1:#fff6f8;
+      --bg2:#f7fbff;
+      --panel:#ffffffd9;
+      --text:#3a2d33;
+      --accent:#ff7aa2;
+      --accent2:#7dcfff;
+      --good:#47c27a;
+      --warn:#ffb347;
+      --bad:#ff5f6d;
+      --shadow:0 10px 30px rgba(0,0,0,.12);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      font-family: ui-rounded, "SF Pro Rounded", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, #fff0f5 0%, transparent 30%),
+        radial-gradient(circle at 80% 10%, #eef9ff 0%, transparent 28%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+    }
+
+    #game{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      overflow:hidden;
+      touch-action:none;
+      user-select:none;
+    }
+
+    .ui{
+      position:absolute;
+      left:12px; right:12px; top:12px;
+      display:flex;
+      gap:10px;
+      align-items:stretch;
+      z-index:20;
+      flex-wrap:wrap;
+    }
+
+    .card{
+      background:var(--panel);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.65);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(5, minmax(82px, 1fr));
+      gap:8px;
+      flex:1 1 700px;
+      padding:8px;
+      min-width:0;
+    }
+
+    .stat{
+      padding:10px 12px;
+      min-width:0;
+    }
+    .stat .label{
+      font-size:12px;
+      opacity:.72;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .stat .value{
+      font-size:22px;
+      font-weight:800;
+      margin-top:2px;
+    }
+
+    .controls{
+      display:flex;
+      gap:8px;
+      padding:8px;
+      flex:0 0 auto;
+      align-items:center;
+    }
+
+    button{
+      border:none;
+      border-radius:16px;
+      padding:12px 14px;
+      font-size:16px;
+      font-weight:800;
+      cursor:pointer;
+      background:white;
+      color:var(--text);
+      box-shadow:var(--shadow);
+    }
+    button.primary{ background:linear-gradient(135deg, #ff95b8, #ff729e); color:white; }
+    button.blue{ background:linear-gradient(135deg, #9bddff, #6cc7ff); color:white; }
+    button:active{ transform:translateY(1px) scale(.98); }
+
+    .hint{
+      position:absolute;
+      left:50%;
+      bottom:14px;
+      transform:translateX(-50%);
+      padding:12px 16px;
+      font-size:14px;
+      z-index:15;
+      max-width:min(92vw, 700px);
+      text-align:center;
+    }
+
+    /* Room */
+    .room{
+      position:absolute;
+      inset:0;
+      overflow:hidden;
+    }
+
+    .floor{
+      position:absolute;
+      left:0; right:0; bottom:0;
+      height:28%;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          #f4d6b8 0px, #f4d6b8 40px,
+          #efcaa6 40px, #efcaa6 80px
+        );
+      border-top:6px solid #e4b88c;
+    }
+
+    .wall{
+      position:absolute;
+      inset:0 0 28% 0;
+      background:
+        radial-gradient(circle at 15% 12%, rgba(255,255,255,.85), transparent 24%),
+        linear-gradient(180deg, #fffdfa, #fff7f3);
+    }
+
+    .window{
+      position:absolute;
+      left:50%;
+      top:17%;
+      width:min(50vw, 380px);
+      height:min(42vh, 300px);
+      transform:translateX(-50%);
+      background:linear-gradient(180deg, #dff5ff, #eefaff 70%, #ffffff);
+      border-radius:18px 18px 10px 10px;
+      border:8px solid #f2e6dc;
+      box-shadow: inset 0 0 0 3px #ffffff;
+      overflow:hidden;
+    }
+
+    .sky-cloud{
+      position:absolute;
+      background:rgba(255,255,255,.92);
+      border-radius:999px;
+      filter:blur(.2px);
+    }
+
+    .sill{
+      position:absolute;
+      left:calc(50% - min(25vw, 190px));
+      top:calc(17% + min(42vh, 300px) - 6px);
+      width:min(50vw, 380px);
+      height:16px;
+      background:#edd7c4;
+      border-radius:0 0 10px 10px;
+      z-index:1;
+    }
+
+    .rod{
+      position:absolute;
+      left:50%;
+      top:13%;
+      width:min(62vw, 470px);
+      height:10px;
+      transform:translateX(-50%);
+      background:linear-gradient(90deg,#cda15e,#e0bf85,#cda15e);
+      border-radius:999px;
+      z-index:2;
+      box-shadow:0 3px 0 rgba(0,0,0,.08);
+    }
+
+    .curtain{
+      position:absolute;
+      top:14.6%;
+      width:min(27vw, 210px);
+      height:min(48vh, 350px);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.28), rgba(255,255,255,.08)),
+        repeating-linear-gradient(
+          90deg,
+          #ffc3d5 0px, #ffc3d5 18px,
+          #ffb4cb 18px, #ffb4cb 36px
+        );
+      border-radius:0 0 18px 18px;
+      box-shadow: inset -10px 0 0 rgba(255,255,255,.14), inset 10px 0 0 rgba(255,255,255,.12);
+      z-index:3;
+      transform-origin:top center;
+      transition:transform .15s linear, filter .2s ease;
+    }
+
+    .curtain.left{ left:calc(50% - min(25vw, 190px) - min(2vw,10px)); transform:translateX(-100%);}
+    .curtain.right{ left:calc(50% + min(25vw, 190px) + min(2vw,10px)); }
+
+    .curtain[data-damage="0"]{}
+    .curtain[data-damage="1"]{ filter:saturate(.96); }
+    .curtain[data-damage="2"]{ filter:saturate(.9); }
+    .curtain[data-damage="3"]{ filter:saturate(.82) brightness(.98); }
+    .curtain[data-damage="4"]{ filter:saturate(.7) brightness(.95); }
+    .curtain[data-damage="5"]{ filter:saturate(.6) brightness(.92); }
+
+    .curtain .tear{
+      position:absolute;
+      width:18px;
+      height:48px;
+      background:rgba(255,245,245,.95);
+      border-radius: 40% 60% 60% 40% / 12% 15% 85% 88%;
+      box-shadow: inset 0 0 0 2px rgba(255,190,200,.35);
+      bottom:0;
+      transform:rotate(var(--r));
+    }
+
+    .scratchMark{
+      position:absolute;
+      width:30px;
+      height:8px;
+      border-top:2px solid rgba(255,255,255,.9);
+      border-bottom:2px solid rgba(255,255,255,.7);
+      opacity:.85;
+      transform:rotate(var(--r));
+    }
+
+    /* Furniture / clutter */
+    .couch{
+      position:absolute;
+      left:6%;
+      bottom:18%;
+      width:min(28vw, 290px);
+      height:min(22vh, 170px);
+      background:linear-gradient(180deg,#b3d7ff,#95c7ff);
+      border-radius:28px 28px 20px 20px;
+      box-shadow: inset 0 -14px 0 rgba(0,0,0,.07), var(--shadow);
+    }
+    .couch::before,.couch::after{
+      content:"";
+      position:absolute;
+      bottom:-8px;
+      width:22px;height:28px;background:#8b6a52;border-radius:6px;
+    }
+    .couch::before{ left:22px; }
+    .couch::after{ right:22px; }
+
+    .plant{
+      position:absolute;
+      right:9%;
+      bottom:18%;
+      width:88px;
+      height:150px;
+    }
+    .pot{
+      position:absolute;
+      bottom:0;
+      left:16px;
+      width:56px;height:42px;
+      background:linear-gradient(180deg,#dca37e,#c58058);
+      border-radius:8px 8px 14px 14px;
+      box-shadow:var(--shadow);
+    }
+    .leaf{
+      position:absolute;
+      bottom:30px;
+      width:26px;height:72px;
+      background:linear-gradient(180deg,#83d984,#53b96e);
+      border-radius:80% 20% 80% 20%;
+      transform-origin:bottom center;
+    }
+
+    .mess{
+      position:absolute;
+      font-size:28px;
+      pointer-events:none;
+      opacity:.85;
+      z-index:4;
+      filter: drop-shadow(0 2px 1px rgba(0,0,0,.12));
+    }
+
+    /* Cat */
+    #cat{
+      position:absolute;
+      width:120px;
+      height:96px;
+      z-index:10;
+      transform:translate(-50%,-50%);
+      pointer-events:none;
+      transition: filter .2s ease;
+    }
+
+    #cat .body{
+      position:absolute;
+      inset:22px 16px 10px 20px;
+      background:linear-gradient(180deg,#8a5a3c,#6e4731);
+      border-radius:42px 44px 34px 34px;
+      box-shadow: inset 0 -10px 0 rgba(0,0,0,.12);
+    }
+
+    #cat .butt{
+      position:absolute;
+      left:8px; bottom:18px;
+      width:42px; height:44px;
+      background:linear-gradient(180deg,#8a5a3c,#6e4731);
+      border-radius:50%;
+    }
+
+    #cat .head{
+      position:absolute;
+      right:6px; top:10px;
+      width:54px; height:48px;
+      background:linear-gradient(180deg,#8e5d3f,#744b33);
+      border-radius:48% 48% 44% 44%;
+    }
+
+    #cat .ear{
+      position:absolute;
+      width:18px;height:20px;
+      background:#744b33;
+      clip-path:polygon(50% 0, 0 100%, 100% 100%);
+      top:-10px;
+    }
+    #cat .ear.left{ left:8px; transform:rotate(-8deg); }
+    #cat .ear.right{ right:8px; transform:rotate(10deg); }
+
+    #cat .ear::after{
+      content:"";
+      position:absolute;
+      left:4px; top:5px;
+      width:10px;height:11px;
+      background:#ffb5c6;
+      clip-path:polygon(50% 0, 0 100%, 100% 100%);
+    }
+
+    .eye{
+      position:absolute;
+      top:18px;
+      width:8px;height:11px;
+      background:#111;
+      border-radius:50%;
+    }
+    .eye.left{ left:16px; }
+    .eye.right{ right:16px; }
+
+    .mouth{
+      position:absolute;
+      left:50%; top:28px;
+      width:18px; height:10px;
+      transform:translateX(-50%);
+      border-bottom:2px solid #2d1d18;
+      border-radius:0 0 16px 16px;
+    }
+    .nose{
+      position:absolute;
+      left:50%; top:22px;
+      width:9px; height:7px;
+      transform:translateX(-50%);
+      background:#ffb0b6;
+      border-radius:50% 50% 60% 60%;
+    }
+
+    .paw{
+      position:absolute;
+      bottom:6px;
+      width:18px;height:28px;
+      background:#744b33;
+      border-radius:10px;
+    }
+    .paw.p1{ left:40px; }
+    .paw.p2{ left:58px; }
+    .paw.p3{ left:76px; }
+    .tail{
+      position:absolute;
+      left:-4px; top:32px;
+      width:58px;height:16px;
+      background:#6f4732;
+      border-radius:999px;
+      transform-origin:12px 8px;
+    }
+
+    #cat.idle .tail{ animation:tailSway 1.2s infinite ease-in-out; }
+    #cat.running{ filter:drop-shadow(0 5px 2px rgba(0,0,0,.15)); }
+    #cat.running .tail{ animation:tailRun .22s infinite alternate; }
+    #cat.pouncing{ transform:translate(-50%,-50%) scale(1.08) rotate(-5deg); }
+    #cat.scratching .paw.p3, #cat.scratching .paw.p2{ animation:scratch .12s infinite alternate; }
+    #cat.playing .body{ animation:bounce .28s infinite alternate; }
+    #cat.angry .eye{ height:4px; top:19px; border-radius:999px; }
+    #cat.angry .mouth{ border-bottom-width:3px; }
+
+    @keyframes tailSway{ 0%{transform:rotate(12deg)} 50%{transform:rotate(-10deg)} 100%{transform:rotate(12deg)}}
+    @keyframes tailRun{ from{transform:rotate(28deg)} to{transform:rotate(-18deg)}}
+    @keyframes bounce{ from{transform:translateY(0)} to{transform:translateY(-4px)}}
+    @keyframes scratch{ from{transform:translateY(0)} to{transform:translateY(-8px)}}
+
+    /* Toys */
+    .toy{
+      position:absolute;
+      width:56px;
+      height:56px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-size:28px;
+      z-index:12;
+      transform:translate(-50%,-50%) scale(0);
+      animation:popIn .18s ease forwards;
+      box-shadow:0 10px 16px rgba(0,0,0,.14);
+      border:3px solid rgba(255,255,255,.88);
+      touch-action:none;
+    }
+    .toy::after{
+      content:"";
+      position:absolute;
+      inset:-8px;
+      border-radius:50%;
+      border:2px dashed rgba(255,255,255,.35);
+      opacity:.7;
+    }
+    .toy.ball{ background:radial-gradient(circle at 35% 35%, #fff, #ff9db8 28%, #ff6f9a 70%); }
+    .toy.feather{ background:radial-gradient(circle at 35% 35%, #fff, #9de4ff 28%, #61c8ff 70%); }
+    .toy.mouse{ background:radial-gradient(circle at 35% 35%, #fff, #f2d0ff 28%, #c987f0 70%); }
+    .toy.laser{ background:radial-gradient(circle at 35% 35%, #fff, #ffe08d 30%, #ffbe32 70%); }
+
+    @keyframes popIn{
+      from{ transform:translate(-50%,-50%) scale(.2); opacity:0; }
+      to{ transform:translate(-50%,-50%) scale(1); opacity:1; }
+    }
+
+    .pulse{
+      position:absolute;
+      width:20px;height:20px;
+      border-radius:50%;
+      border:3px solid rgba(255,255,255,.8);
+      transform:translate(-50%,-50%);
+      pointer-events:none;
+      animation:pulse 0.55s ease-out forwards;
+      z-index:13;
+    }
+    @keyframes pulse{
+      from{opacity:1; transform:translate(-50%,-50%) scale(.4)}
+      to{opacity:0; transform:translate(-50%,-50%) scale(3)}
+    }
+
+    .floaty{
+      position:absolute;
+      transform:translate(-50%,-50%);
+      pointer-events:none;
+      font-weight:900;
+      z-index:40;
+      white-space:nowrap;
+      text-shadow:0 2px 0 rgba(255,255,255,.8), 0 8px 20px rgba(0,0,0,.15);
+      animation:floatUp .9s ease-out forwards;
+    }
+    @keyframes floatUp{
+      from{opacity:0; transform:translate(-50%,-20%) scale(.8)}
+      10%{opacity:1}
+      to{opacity:0; transform:translate(-50%,-140%) scale(1.15)}
+    }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:none;
+      place-items:center;
+      z-index:50;
+      background:rgba(255,246,249,.58);
+      backdrop-filter: blur(8px);
+      padding:20px;
+    }
+    .overlay.show{ display:grid; }
+
+    .modal{
+      width:min(92vw, 560px);
+      padding:22px;
+      text-align:center;
+    }
+    .modal h1{
+      margin:0 0 8px;
+      font-size:clamp(26px, 5vw, 42px);
+      line-height:1.02;
+    }
+    .modal p{
+      margin:8px 0;
+      font-size:16px;
+      opacity:.82;
+    }
+
+    .badgeRow{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin-top:14px;
+    }
+    .badge{
+      padding:10px 12px;
+      border-radius:999px;
+      background:white;
+      box-shadow:var(--shadow);
+      font-weight:800;
+    }
+
+    .legend{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(140px, 1fr));
+      gap:10px;
+      text-align:left;
+    }
+    .legend div{
+      padding:12px;
+      background:white;
+      border-radius:16px;
+      box-shadow:var(--shadow);
+    }
+
+    @media (max-width: 780px){
+      .stats{
+        grid-template-columns: repeat(3, minmax(72px, 1fr));
+      }
+      .controls{
+        width:100%;
+        justify-content:center;
+      }
+      .curtain{
+        height:min(44vh, 310px);
+      }
+      #cat{
+        width:102px;
+        height:82px;
+      }
+      .hint{ font-size:13px; bottom:max(12px, env(safe-area-inset-bottom)); }
+    }
+  </style>
+</head>
+<body>
+  <div id="game" aria-label="Cat vs Curtains game">
+    <div class="room">
+      <div class="wall"></div>
+      <div class="window" aria-hidden="true">
+        <div class="sky-cloud" style="left:14%; top:18%; width:80px; height:28px;"></div>
+        <div class="sky-cloud" style="left:26%; top:14%; width:42px; height:42px;"></div>
+        <div class="sky-cloud" style="right:14%; top:22%; width:92px; height:26px;"></div>
+        <div class="sky-cloud" style="right:26%; top:16%; width:36px; height:36px;"></div>
+      </div>
+      <div class="sill"></div>
+      <div class="rod"></div>
+      <div class="curtain left" id="curtainLeft" data-damage="0"></div>
+      <div class="curtain right" id="curtainRight" data-damage="0"></div>
+
+      <div class="couch"></div>
+
+      <div class="plant">
+        <div class="leaf" style="left:4px; transform:rotate(-22deg);"></div>
+        <div class="leaf" style="left:28px; height:80px; transform:rotate(3deg);"></div>
+        <div class="leaf" style="left:50px; transform:rotate(22deg);"></div>
+        <div class="pot"></div>
+      </div>
+
+      <div class="floor"></div>
+
+      <div id="cat" class="idle" aria-hidden="true">
+        <div class="tail"></div>
+        <div class="butt"></div>
+        <div class="body"></div>
+        <div class="paw p1"></div>
+        <div class="paw p2"></div>
+        <div class="paw p3"></div>
+        <div class="head">
+          <div class="ear left"></div>
+          <div class="ear right"></div>
+          <div class="eye left"></div>
+          <div class="eye right"></div>
+          <div class="nose"></div>
+          <div class="mouth"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui">
+      <div class="stats card">
+        <div class="stat">
+          <div class="label">Score</div>
+          <div class="value" id="scoreEl">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Curtains</div>
+          <div class="value" id="healthEl">100%</div>
+        </div>
+        <div class="stat">
+          <div class="label">Chaos</div>
+          <div class="value" id="chaosEl">0%</div>
+        </div>
+        <div class="stat">
+          <div class="label">Combo</div>
+          <div class="value" id="comboEl">x0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Cat Mood</div>
+          <div class="value" id="moodEl">😼</div>
+        </div>
+      </div>
+
+      <div class="controls card">
+        <button class="primary" id="startBtn">▶ Start</button>
+        <button class="blue" id="pauseBtn">⏸ Pause</button>
+        <button id="resetBtn">↺ Reset</button>
+      </div>
+    </div>
+
+    <div class="hint card" id="hint">
+      Tap anywhere to throw toys and keep the cat away from the curtains. Drag across the room to spam toys faster.
+    </div>
+
+    <div class="overlay show" id="overlay">
+      <div class="modal card">
+        <h1>Cat vs Curtains</h1>
+        <p>Distract a chaotic little goblin before your curtains become modern art.</p>
+        <div class="badgeRow">
+          <div class="badge">🎾 Toys calm the cat</div>
+          <div class="badge">🪟 Protect both curtains</div>
+          <div class="badge">⚡ Keep the combo alive</div>
+        </div>
+        <div class="legend">
+          <div><strong>Goal</strong><br>Keep curtain health above 0 while scoring as much as possible.</div>
+          <div><strong>How it gets harder</strong><br>The cat gets bored faster and dashes to scratch more often.</div>
+          <div><strong>Scoring</strong><br>Quick distractions build combo multipliers.</div>
+          <div><strong>Best tactic</strong><br>Throw toys between the cat and whichever curtain it targets.</div>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="primary" id="playNowBtn">Start the chaos</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const game = document.getElementById('game');
+    const cat = document.getElementById('cat');
+    const curtainLeft = document.getElementById('curtainLeft');
+    const curtainRight = document.getElementById('curtainRight');
+    const overlay = document.getElementById('overlay');
+
+    const scoreEl = document.getElementById('scoreEl');
+    const healthEl = document.getElementById('healthEl');
+    const chaosEl = document.getElementById('chaosEl');
+    const comboEl = document.getElementById('comboEl');
+    const moodEl = document.getElementById('moodEl');
+
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const playNowBtn = document.getElementById('playNowBtn');
+    const hint = document.getElementById('hint');
+
+    const TOYS = [
+      { type:'ball', emoji:'🎾', lure:1.00, score:12 },
+      { type:'feather', emoji:'🪶', lure:1.15, score:14 },
+      { type:'mouse', emoji:'🐭', lure:1.25, score:18 },
+      { type:'laser', emoji:'🔴', lure:1.35, score:22 },
+    ];
+
+    let state;
+
+    function newState(){
+      return {
+        running:false,
+        paused:false,
+        score:0,
+        combo:0,
+        comboTimer:0,
+        health:100,
+        chaos:0,
+        levelTime:0,
+        cat:{
+          x:window.innerWidth*0.25,
+          y:window.innerHeight*0.72,
+          vx:0,
+          vy:0,
+          speed:230,
+          mood:'mischief',
+          state:'idle',
+          target:null,
+          scratchTarget:'right',
+          scratchCooldown:2.2,
+          boredom:0,
+          reactionBias:1,
+        },
+        toys:[],
+        particles:[],
+        messCount:0,
+        lastTime:performance.now(),
+      };
+    }
+
+    function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+    function dist(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+    function rand(min,max){ return Math.random()*(max-min)+min; }
+    function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
+
+    function curtainAnchor(side){
+      const r = (side === 'left' ? curtainLeft : curtainRight).getBoundingClientRect();
+      return { x:r.left + r.width*0.5, y:r.top + r.height*0.45 };
+    }
+
+    function spawnToy(x,y){
+      if(!state.running || state.paused) return;
+      const toyType = pick(TOYS);
+      const toy = {
+        id:Math.random().toString(36).slice(2),
+        x, y,
+        age:0,
+        life:2.7,
+        type:toyType.type,
+        emoji:toyType.emoji,
+        lure:toyType.lure,
+        score:toyType.score,
+        el:null
+      };
+
+      const el = document.createElement('div');
+      el.className = `toy ${toy.type}`;
+      el.textContent = toy.emoji;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      game.appendChild(el);
+      toy.el = el;
+
+      state.toys.push(toy);
+      pulse(x,y);
+
+      const near = dist(state.cat.x, state.cat.y, x, y);
+      const targetWeight = clamp(1.4 - near / 450, 0.25, 1.4) * toy.lure * state.cat.reactionBias;
+
+      if (Math.random() < targetWeight) {
+        state.cat.target = { x, y, kind:'toy', ref:toy };
+        state.cat.state = 'playing';
+      }
+    }
+
+    function pulse(x,y){
+      const p = document.createElement('div');
+      p.className = 'pulse';
+      p.style.left = x+'px';
+      p.style.top = y+'px';
+      game.appendChild(p);
+      setTimeout(()=>p.remove(), 560);
+    }
+
+    function floaty(text, x, y, size=24){
+      const f = document.createElement('div');
+      f.className = 'floaty';
+      f.textContent = text;
+      f.style.left = x+'px';
+      f.style.top = y+'px';
+      f.style.fontSize = size + 'px';
+      game.appendChild(f);
+      setTimeout(()=>f.remove(), 920);
+    }
+
+    function addScore(base, x, y){
+      const mult = Math.max(1, Math.min(8, 1 + Math.floor(state.combo / 3)));
+      const gained = base * mult;
+      state.score += gained;
+      state.combo += 1;
+      state.comboTimer = 2.2;
+      floaty(`+${gained}`, x, y, 22 + Math.min(18, mult*2));
+    }
+
+    function loseCombo(){
+      state.combo = 0;
+      state.comboTimer = 0;
+    }
+
+    function updateUI(){
+      scoreEl.textContent = state.score;
+      healthEl.textContent = Math.max(0, Math.round(state.health)) + '%';
+      chaosEl.textContent = Math.round(state.chaos) + '%';
+      comboEl.textContent = 'x' + state.combo;
+
+      let mood = '😼';
+      if (state.cat.state === 'scratching') mood = '😾';
+      else if (state.cat.state === 'playing') mood = '😺';
+      else if (state.health < 40) mood = '🙀';
+      else if (state.chaos > 70) mood = '😹';
+      moodEl.textContent = mood;
+
+      cat.classList.toggle('angry', state.cat.state === 'scratching');
+      cat.classList.toggle('playing', state.cat.state === 'playing');
+      cat.classList.toggle('running', state.cat.state === 'running' || state.cat.state === 'playing' || state.cat.state === 'scratching');
+      cat.classList.toggle('idle', state.cat.state === 'idle');
+    }
+
+    function setCatPos(x,y){
+      state.cat.x = x;
+      state.cat.y = y;
+      cat.style.left = x + 'px';
+      cat.style.top = y + 'px';
+      const faceRight = state.cat.vx >= 0 ? 1 : -1;
+      cat.style.transform = `translate(-50%,-50%) scaleX(${faceRight})`;
+    }
+
+    function moveToward(tx,ty,dt, speedMul=1){
+      const dx = tx - state.cat.x;
+      const dy = ty - state.cat.y;
+      const d = Math.hypot(dx,dy) || 1;
+      const sp = state.cat.speed * speedMul;
+      state.cat.vx = dx/d * sp;
+      state.cat.vy = dy/d * sp;
+      setCatPos(
+        state.cat.x + state.cat.vx * dt,
+        state.cat.y + state.cat.vy * dt
+      );
+      return d;
+    }
+
+    function nearestToy(){
+      let best = null, bestScore = Infinity;
+      for(const t of state.toys){
+        const score = dist(state.cat.x, state.cat.y, t.x, t.y) / t.lure;
+        if(score < bestScore){
+          bestScore = score;
+          best = t;
+        }
+      }
+      return best;
+    }
+
+    function chooseCurtainTarget(){
+      state.cat.scratchTarget = Math.random() < 0.5 ? 'left' : 'right';
+      const a = curtainAnchor(state.cat.scratchTarget);
+      state.cat.target = { x:a.x, y:a.y, kind:'curtain', side:state.cat.scratchTarget };
+      state.cat.state = 'running';
+    }
+
+    function scratchCurtain(side){
+      const curtain = side === 'left' ? curtainLeft : curtainRight;
+      const currentDamage = +curtain.dataset.damage;
+      curtain.dataset.damage = String(clamp(currentDamage + 1, 0, 5));
+
+      const r = curtain.getBoundingClientRect();
+
+      // visual tears
+      const tear = document.createElement('div');
+      tear.className = 'tear';
+      tear.style.left = rand(14, r.width - 26) + 'px';
+      tear.style.height = rand(38, 78) + 'px';
+      tear.style.setProperty('--r', rand(-10, 10) + 'deg');
+      curtain.appendChild(tear);
+
+      for(let i=0;i<3;i++){
+        const s = document.createElement('div');
+        s.className = 'scratchMark';
+        s.style.left = rand(10, r.width - 40) + 'px';
+        s.style.top = rand(30, r.height - 50) + 'px';
+        s.style.setProperty('--r', rand(-30, 30) + 'deg');
+        curtain.appendChild(s);
+      }
+
+      state.health -= rand(5, 9);
+      state.chaos += rand(6, 10);
+
+      curtain.animate(
+        [
+          { transform: curtain.classList.contains('left') ? 'translateX(-100%) rotate(0deg)' : 'rotate(0deg)' },
+          { transform: curtain.classList.contains('left') ? 'translateX(-100%) rotate(-4deg)' : 'rotate(4deg)' },
+          { transform: curtain.classList.contains('left') ? 'translateX(-100%) rotate(0deg)' : 'rotate(0deg)' }
+        ],
+        { duration:180, easing:'ease-out' }
+      );
+
+      const x = r.left + r.width*0.5;
+      const y = r.top + r.height*0.35;
+      floaty('SCRATCH!', x, y, 26);
+
+      spawnMess();
+      if (Math.random() < 0.4) spawnMess();
+    }
+
+    function spawnMess(){
+      const items = ['🧶','🪴','🧦','🧻','📦','🧸','🧵','🍪'];
+      const m = document.createElement('div');
+      m.className = 'mess';
+      m.textContent = pick(items);
+      m.style.left = rand(8, 92) + 'vw';
+      m.style.top = rand(54, 88) + 'vh';
+      m.style.transform = `rotate(${rand(-35,35)}deg)`;
+      game.appendChild(m);
+      state.messCount++;
+    }
+
+    function gameOver(){
+      state.running = false;
+      overlay.classList.add('show');
+
+      const badges = [];
+      if (state.score >= 800) badges.push('🏆 Legendary Cat Wrangler');
+      else if (state.score >= 450) badges.push('⭐ Skilled Distractor');
+      else badges.push('🧶 Barely Survived');
+
+      if (state.health > 50) badges.push('🪟 Curtain Protector');
+      if (state.combo >= 12) badges.push('⚡ Combo Beast');
+      if (state.messCount >= 12) badges.push('🌀 Tiny Tornado');
+
+      overlay.querySelector('.modal').innerHTML = `
+        <h1>${state.health <= 0 ? 'The curtains lost.' : 'Chaos paused.'}</h1>
+        <p>Score: <strong>${state.score}</strong></p>
+        <p>Curtain health left: <strong>${Math.max(0, Math.round(state.health))}%</strong></p>
+        <div class="badgeRow">
+          ${badges.map(b => `<div class="badge">${b}</div>`).join('')}
+        </div>
+        <div style="margin-top:16px;">
+          <button class="primary" id="againBtn">Play again</button>
+        </div>
+      `;
+      document.getElementById('againBtn').addEventListener('click', resetGame);
+    }
+
+    function resetCurtains(){
+      [curtainLeft, curtainRight].forEach(c => {
+        c.dataset.damage = '0';
+        c.querySelectorAll('.tear,.scratchMark').forEach(el => el.remove());
+      });
+    }
+
+    function clearToys(){
+      state.toys.forEach(t => t.el?.remove());
+      state.toys = [];
+    }
+
+    function clearMess(){
+      document.querySelectorAll('.mess,.floaty,.pulse').forEach(el => el.remove());
+      state.messCount = 0;
+    }
+
+    function resetGame(){
+      state = newState();
+      overlay.classList.remove('show');
+      clearToys();
+      clearMess();
+      resetCurtains();
+      setCatPos(state.cat.x, state.cat.y);
+      updateUI();
+      hint.textContent = 'Tap or drag to toss toys. Stop the cat before it reaches the curtains.';
+      startGame();
+    }
+
+    function startGame(){
+      state.running = true;
+      state.paused = false;
+      state.lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function togglePause(){
+      if(!state.running) return;
+      state.paused = !state.paused;
+      if(!state.paused){
+        state.lastTime = performance.now();
+        requestAnimationFrame(loop);
+      }
+      pauseBtn.textContent = state.paused ? '▶ Resume' : '⏸ Pause';
+      hint.textContent = state.paused ? 'Paused. The cat is temporarily pretending to be innocent.' : 'Back to active nonsense.';
+    }
+
+    function loop(now){
+      if(!state.running || state.paused) return;
+      const dt = Math.min(0.033, (now - state.lastTime)/1000);
+      state.lastTime = now;
+
+      state.levelTime += dt;
+      state.cat.speed = 210 + Math.min(220, state.levelTime * 7.5);
+      state.cat.reactionBias = clamp(1.1 - state.levelTime * 0.002, 0.74, 1.1);
+      state.cat.scratchCooldown -= dt;
+      state.cat.boredom += dt * (0.7 + state.levelTime*0.015);
+      state.chaos += dt * (0.65 + state.levelTime*0.04);
+
+      if(state.comboTimer > 0){
+        state.comboTimer -= dt;
+        if(state.comboTimer <= 0) loseCombo();
+      }
+
+      // age toys
+      for(let i = state.toys.length - 1; i >= 0; i--){
+        const t = state.toys[i];
+        t.age += dt;
+        if(t.el){
+          const lifePct = 1 - (t.age / t.life);
+          t.el.style.opacity = clamp(lifePct, 0, 1);
+          t.el.style.transform = `translate(-50%,-50%) scale(${0.9 + lifePct*0.1})`;
+        }
+        if(t.age >= t.life){
+          t.el?.remove();
+          state.toys.splice(i,1);
+        }
+      }
+
+      // cat AI
+      const temptingToy = nearestToy();
+      const wantsToy = temptingToy && (
+        state.cat.boredom > 0.18 ||
+        dist(state.cat.x, state.cat.y, temptingToy.x, temptingToy.y) < 230
+      );
+
+      if(state.cat.state === 'idle'){
+        if(wantsToy){
+          state.cat.target = { x:temptingToy.x, y:temptingToy.y, kind:'toy', ref:temptingToy };
+          state.cat.state = 'playing';
+        } else if(state.cat.scratchCooldown <= 0 || state.cat.boredom > 1.6){
+          chooseCurtainTarget();
+        }
+      }
+
+      if(state.cat.state === 'playing' && state.cat.target){
+        const d = moveToward(state.cat.target.x, state.cat.target.y, dt, 1.05);
+        if(d < 34){
+          if(state.cat.target.kind === 'toy' && state.cat.target.ref){
+            const ref = state.cat.target.ref;
+            addScore(ref.score, ref.x, ref.y);
+            ref.el?.remove();
+            state.toys = state.toys.filter(t => t !== ref);
+            state.cat.boredom = 0;
+            state.cat.scratchCooldown = Math.max(0.65, 2.2 - state.levelTime * 0.01);
+            state.chaos = Math.max(0, state.chaos - rand(2,5));
+            state.cat.state = 'idle';
+            state.cat.target = null;
+          } else {
+            state.cat.state = 'idle';
+          }
+        } else {
+          const betterToy = nearestToy();
+          if (betterToy && betterToy !== state.cat.target.ref && dist(state.cat.x, state.cat.y, betterToy.x, betterToy.y) < 170) {
+            state.cat.target = { x:betterToy.x, y:betterToy.y, kind:'toy', ref:betterToy };
+          }
+        }
+      }
+
+      if((state.cat.state === 'running' || state.cat.state === 'scratching') && state.cat.target){
+        const d = moveToward(state.cat.target.x, state.cat.target.y, dt, 1.18);
+        if(wantsToy && Math.random() < 0.045){
+          state.cat.target = { x:temptingToy.x, y:temptingToy.y, kind:'toy', ref:temptingToy };
+          state.cat.state = 'playing';
+        } else if(d < 40){
+          state.cat.state = 'scratching';
+          cat.classList.add('scratching');
+          scratchCurtain(state.cat.target.side);
+          setTimeout(()=>cat.classList.remove('scratching'), 180);
+          state.cat.boredom = 0.35;
+          state.cat.scratchCooldown = Math.max(0.48, 1.8 - state.levelTime*0.012);
+          state.cat.state = 'idle';
+          state.cat.target = null;
+          loseCombo();
+        }
+      }
+
+      // passive drift if truly idle
+      if(state.cat.state === 'idle'){
+        state.cat.vx *= 0.88;
+        state.cat.vy *= 0.88;
+      }
+
+      // bounds
+      const minX = 60, maxX = window.innerWidth - 60;
+      const minY = window.innerHeight * 0.28, maxY = window.innerHeight - 90;
+      setCatPos(clamp(state.cat.x, minX, maxX), clamp(state.cat.y, minY, maxY));
+
+      if(state.health <= 0){
+        state.health = 0;
+        updateUI();
+        gameOver();
+        return;
+      }
+
+      if(state.chaos >= 100){
+        state.chaos = 100;
+      }
+
+      updateUI();
+      requestAnimationFrame(loop);
+    }
+
+    function pointerPos(e){
+      const p = e.touches ? e.touches[0] : e;
+      return { x:p.clientX, y:p.clientY };
+    }
+
+    let dragSpawnTimer = 0;
+    let lastDragSpawn = 0;
+
+    function maybeSpawnFromEvent(e){
+      const now = performance.now();
+      if(now - lastDragSpawn < 70) return;
+      lastDragSpawn = now;
+      const {x,y} = pointerPos(e);
+      if(y < 70) return;
+      spawnToy(x,y);
+    }
+
+    game.addEventListener('pointerdown', (e)=>{
+      if(!state || !state.running || state.paused) return;
+      if(e.target.closest('button')) return;
+      const {x,y} = pointerPos(e);
+      spawnToy(x,y);
+    });
+
+    game.addEventListener('pointermove', (e)=>{
+      if((e.buttons === 1 || e.pressure > 0) && state?.running && !state.paused){
+        if(e.target.closest('button')) return;
+        maybeSpawnFromEvent(e);
+      }
+    });
+
+    game.addEventListener('touchmove', (e)=>{
+      if(state?.running && !state.paused){
+        maybeSpawnFromEvent(e);
+      }
+    }, {passive:true});
+
+    startBtn.addEventListener('click', ()=>{
+      if(!state) state = newState();
+      overlay.classList.remove('show');
+      if(!state.running){
+        state.lastTime = performance.now();
+        state.running = true;
+        state.paused = false;
+        requestAnimationFrame(loop);
+      }
+    });
+
+    playNowBtn.addEventListener('click', resetGame);
+    pauseBtn.addEventListener('click', togglePause);
+    resetBtn.addEventListener('click', ()=>{
+      if(!state){
+        state = newState();
+        updateUI();
+      }
+      resetGame();
+    });
+
+    window.addEventListener('resize', ()=>{
+      if(!state) return;
+      setCatPos(
+        clamp(state.cat.x, 60, window.innerWidth - 60),
+        clamp(state.cat.y, window.innerHeight*0.28, window.innerHeight - 90)
+      );
+    });
+
+    // init
+    state = newState();
+    setCatPos(state.cat.x, state.cat.y);
+    updateUI();
+  </script>
+</body>
+</html>
