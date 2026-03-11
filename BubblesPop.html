@@ -10,15 +10,13 @@
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
+      -webkit-user-select: none;
     }
 
     :root {
       --bg1: #fff2fb;
       --bg2: #e8f7ff;
       --bg3: #fff7d9;
-      --bubble: rgba(255,255,255,0.55);
-      --bubble-edge: rgba(255,255,255,0.95);
-      --bubble-shadow: rgba(120, 140, 180, 0.12);
       --text: #5a5872;
       --card: rgba(255,255,255,0.72);
     }
@@ -34,6 +32,7 @@
         radial-gradient(circle at 80% 20%, var(--bg3), transparent 28%),
         radial-gradient(circle at 50% 80%, #f5e7ff, transparent 30%),
         linear-gradient(135deg, var(--bg1), #f5fbff 40%, #fff7ef);
+      touch-action: none;
     }
 
     body::before {
@@ -66,6 +65,7 @@
       pointer-events: auto;
       background: var(--card);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-radius: 22px;
       box-shadow: 0 12px 35px rgba(103, 122, 163, 0.14);
     }
@@ -126,6 +126,8 @@
       align-content: start;
       overflow: auto;
       touch-action: none;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: auto;
     }
 
     .bubble {
@@ -139,7 +141,7 @@
       box-shadow:
         inset 0 10px 14px rgba(255,255,255,0.65),
         inset 0 -10px 18px rgba(190, 210, 240, 0.22),
-        0 10px 16px var(--bubble-shadow);
+        0 10px 16px rgba(120, 140, 180, 0.12);
       transform: scale(1);
       transition:
         transform 140ms ease,
@@ -148,6 +150,9 @@
         opacity 220ms ease;
       cursor: pointer;
       overflow: hidden;
+      appearance: none;
+      -webkit-appearance: none;
+      touch-action: none;
     }
 
     .bubble::after {
@@ -160,10 +165,6 @@
       background: rgba(255,255,255,0.85);
       filter: blur(1px);
       opacity: 0.85;
-    }
-
-    .bubble:hover {
-      transform: scale(1.03);
     }
 
     .bubble.popped {
@@ -242,12 +243,15 @@
       z-index: 22;
       background: rgba(255,255,255,0.78);
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-radius: 999px;
       padding: 10px 14px;
       font-size: 13px;
       box-shadow: 0 10px 28px rgba(103, 122, 163, 0.13);
       pointer-events: none;
       animation: fadeHint 7s ease forwards;
+      text-align: center;
+      max-width: calc(100vw - 28px);
     }
 
     @keyframes fadeHint {
@@ -306,66 +310,83 @@
     let dragging = false;
     let soundEnabled = true;
     let audioCtx = null;
+    let audioUnlocked = false;
 
     function createAudio() {
       if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) return null;
+        audioCtx = new AudioCtor();
       }
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
+      return audioCtx;
+    }
+
+    async function unlockAudio() {
+      const ctx = createAudio();
+      if (!ctx) return;
+
+      try {
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+        }
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        gain.gain.value = 0.0001;
+        osc.frequency.value = 440;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.01);
+
+        audioUnlocked = true;
+      } catch (e) {
+        console.log("Audio unlock failed:", e);
       }
     }
 
     function playPopSound(variant = 0) {
-      if (!soundEnabled) return;
-      createAudio();
+      if (!soundEnabled || !audioUnlocked) return;
+      const ctx = createAudio();
+      if (!ctx) return;
 
-      const now = audioCtx.currentTime;
+      const now = ctx.currentTime;
 
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      const filter = audioCtx.createBiquadFilter();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-      osc.type = variant % 2 === 0 ? "triangle" : "square";
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(1800, now);
-      filter.frequency.exponentialRampToValueAtTime(500, now + 0.08);
-
-      const startFreq = 280 + Math.random() * 180;
-      const endFreq = 110 + Math.random() * 40;
-
-      osc.frequency.setValueAtTime(startFreq, now);
-      osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.09);
+      osc.type = variant % 2 === 0 ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(420 + Math.random() * 120, now);
+      osc.frequency.exponentialRampToValueAtTime(150 + Math.random() * 35, now + 0.06);
 
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.008);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
 
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(audioCtx.destination);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.1);
+      osc.stop(now + 0.08);
 
-      const burst = audioCtx.createBufferSource();
-      const burstGain = audioCtx.createGain();
-      const bufferSize = audioCtx.sampleRate * 0.035;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+      const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.02, ctx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
       }
 
-      burst.buffer = buffer;
-      burstGain.gain.setValueAtTime(0.04, now);
-      burstGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+      const noise = ctx.createBufferSource();
+      const noiseGain = ctx.createGain();
+      noise.buffer = noiseBuffer;
 
-      burst.connect(burstGain);
-      burstGain.connect(audioCtx.destination);
-      burst.start(now);
-      burst.stop(now + 0.05);
+      noiseGain.gain.setValueAtTime(0.02, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+
+      noise.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noise.start(now);
+      noise.stop(now + 0.02);
     }
 
     function makeBubble() {
@@ -374,15 +395,6 @@
       bubble.className = "bubble";
       bubble.setAttribute("aria-label", "Bubble");
       bubble.dataset.popped = "false";
-
-      bubble.addEventListener("pointerdown", (e) => {
-        popBubble(bubble, e.clientX, e.clientY);
-      });
-
-      bubble.addEventListener("pointerenter", (e) => {
-        if (dragging) popBubble(bubble, e.clientX, e.clientY);
-      });
-
       return bubble;
     }
 
@@ -428,6 +440,7 @@
     }
 
     function popBubble(bubble, x = null, y = null) {
+      if (!bubble || !bubble.classList.contains("bubble")) return;
       if (bubble.dataset.popped === "true") return;
 
       bubble.dataset.popped = "true";
@@ -438,6 +451,14 @@
       sparkle(pt.x, pt.y);
       if (Math.random() > 0.4) popText(pt.x, pt.y);
       playPopSound(Math.floor(Math.random() * 4));
+    }
+
+    function popAtPoint(clientX, clientY) {
+      const el = document.elementFromPoint(clientX, clientY);
+      if (!el) return;
+      if (el.classList && el.classList.contains("bubble")) {
+        popBubble(el, clientX, clientY);
+      }
     }
 
     function resetBubbles() {
@@ -467,26 +488,60 @@
       }
     }
 
-    window.addEventListener("pointerdown", () => {
+    async function beginInteraction(clientX, clientY) {
       dragging = true;
-      createAudio();
+      await unlockAudio();
+      popAtPoint(clientX, clientY);
+    }
+
+    function moveInteraction(clientX, clientY) {
+      if (!dragging) return;
+      popAtPoint(clientX, clientY);
+    }
+
+    function endInteraction() {
+      dragging = false;
+    }
+
+    wrap.addEventListener("pointerdown", async (e) => {
+      e.preventDefault();
+      await beginInteraction(e.clientX, e.clientY);
     });
 
-    window.addEventListener("pointerup", () => {
-      dragging = false;
+    wrap.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      moveInteraction(e.clientX, e.clientY);
     });
 
-    window.addEventListener("pointercancel", () => {
-      dragging = false;
-    });
+    window.addEventListener("pointerup", endInteraction);
+    window.addEventListener("pointercancel", endInteraction);
+
+    wrap.addEventListener("touchstart", async (e) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      if (!t) return;
+      await beginInteraction(t.clientX, t.clientY);
+    }, { passive: false });
+
+    wrap.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      if (!t) return;
+      moveInteraction(t.clientX, t.clientY);
+    }, { passive: false });
+
+    wrap.addEventListener("touchend", endInteraction, { passive: false });
 
     resetBtn.addEventListener("click", resetBubbles);
     randomBtn.addEventListener("click", randomPop);
 
-    soundBtn.addEventListener("click", () => {
+    soundBtn.addEventListener("click", async () => {
       soundEnabled = !soundEnabled;
       soundBtn.textContent = soundEnabled ? "Sound: On" : "Sound: Off";
-      if (soundEnabled) createAudio();
+      if (soundEnabled) {
+        await unlockAudio();
+      }
     });
 
     window.addEventListener("resize", () => {
