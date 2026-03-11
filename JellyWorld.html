@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+  <title>Jelly World Deluxe</title>
+  <meta name="theme-color" content="#ffdff5" />
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --bg1: #fff2fb;
+      --bg2: #e8f7ff;
+      --bg3: #fff7dc;
+      --text: #6c5b7b;
+      --card: rgba(255, 255, 255, 0.74);
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, var(--bg2), transparent 28%),
+        radial-gradient(circle at 85% 18%, #ffe8f7, transparent 28%),
+        radial-gradient(circle at 50% 85%, var(--bg3), transparent 30%),
+        linear-gradient(135deg, #fff6fd, #f2fbff 40%, #fffaf0);
+      touch-action: none;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255,255,255,0.8) 0 4%, transparent 8%),
+        radial-gradient(circle at 80% 30%, rgba(255,255,255,0.55) 0 4%, transparent 8%),
+        radial-gradient(circle at 30% 75%, rgba(255,255,255,0.45) 0 4%, transparent 8%);
+      opacity: 0.85;
+    }
+
+    .ui {
+      position: fixed;
+      top: calc(env(safe-area-inset-top) + 12px);
+      left: 12px;
+      right: 12px;
+      z-index: 80;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .title-box,
+    .controls,
+    .combo-box {
+      pointer-events: auto;
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 22px;
+      box-shadow: 0 12px 30px rgba(121, 123, 173, 0.14);
+    }
+
+    .title-box {
+      padding: 14px 18px;
+      max-width: min(560px, 74vw);
+    }
+
+    .title-box h1 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 34px);
+      line-height: 1;
+    }
+
+    .title-box p {
+      margin: 7px 0 0;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .right-ui {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      justify-content: flex-end;
+    }
+
+    .combo-box {
+      padding: 10px 14px;
+      min-width: 135px;
+      text-align: center;
+    }
+
+    .combo-label {
+      font-size: 12px;
+      opacity: 0.75;
+    }
+
+    .combo-value {
+      font-weight: 800;
+      font-size: 22px;
+      line-height: 1.1;
+      margin-top: 2px;
+    }
+
+    .combo-sub {
+      font-size: 12px;
+      margin-top: 2px;
+      opacity: 0.85;
+      min-height: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      font: inherit;
+      color: var(--text);
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 8px 20px rgba(121, 123, 173, 0.12);
+      cursor: pointer;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    #world {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .blob {
+      position: absolute;
+      width: var(--size);
+      height: var(--size);
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
+      touch-action: none;
+      will-change: transform;
+      filter: drop-shadow(0 16px 22px rgba(98, 95, 145, 0.14));
+    }
+
+    .blob-core {
+      position: absolute;
+      inset: 0;
+      border-radius: 44% 56% 52% 48% / 50% 42% 58% 50%;
+      background:
+        radial-gradient(circle at 30% 24%, rgba(255,255,255,0.9) 0 10%, rgba(255,255,255,0.35) 11% 18%, transparent 19%),
+        radial-gradient(circle at 65% 70%, rgba(255,255,255,0.16), transparent 35%),
+        linear-gradient(145deg, var(--c1), var(--c2));
+      border: 2px solid rgba(255,255,255,0.6);
+      box-shadow:
+        inset 0 16px 20px rgba(255,255,255,0.25),
+        inset 0 -18px 22px rgba(110,110,140,0.12);
+      overflow: hidden;
+      transition: filter 160ms ease;
+    }
+
+    .blob-core::before {
+      content: "";
+      position: absolute;
+      inset: 12% 18% auto auto;
+      width: 18%;
+      height: 18%;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.75);
+      filter: blur(1px);
+    }
+
+    .blob.pressed .blob-core {
+      filter: brightness(0.98) saturate(1.06);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .eye {
+      position: absolute;
+      width: 8%;
+      height: 12%;
+      border-radius: 999px;
+      background: rgba(60, 66, 90, 0.9);
+      top: 42%;
+      transition: all 120ms ease;
+      transform-origin: center;
+    }
+
+    .eye.left { left: 36%; }
+    .eye.right { right: 36%; }
+
+    .mouth {
+      position: absolute;
+      left: 50%;
+      top: 58%;
+      width: 18%;
+      height: 10%;
+      transform: translateX(-50%);
+      border-bottom: 3px solid rgba(60, 66, 90, 0.85);
+      border-radius: 0 0 999px 999px;
+      transition: all 120ms ease;
+    }
+
+    .blush {
+      position: absolute;
+      width: 12%;
+      height: 8%;
+      border-radius: 50%;
+      background: rgba(255, 170, 200, 0.35);
+      top: 52%;
+      filter: blur(1px);
+      transition: all 120ms ease;
+    }
+
+    .blush.left { left: 20%; }
+    .blush.right { right: 20%; }
+
+    .blob.pressed .eye {
+      height: 5%;
+      top: 47%;
+      transform: scaleX(1.15);
+    }
+
+    .blob.pressed .mouth {
+      width: 14%;
+      height: 6%;
+      top: 60%;
+      border-bottom-width: 4px;
+    }
+
+    .sparkle,
+    .mini-heart,
+    .splash-text,
+    .combo-pop {
+      position: fixed;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+    }
+
+    .sparkle {
+      width: 72px;
+      height: 72px;
+      animation: sparkleOut 560ms ease-out forwards;
+    }
+
+    .sparkle::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.95) 0 5%, transparent 6%),
+        radial-gradient(circle at 25% 35%, rgba(255,225,240,0.85) 0 4%, transparent 5%),
+        radial-gradient(circle at 78% 40%, rgba(220,245,255,0.85) 0 4%, transparent 5%),
+        radial-gradient(circle at 45% 78%, rgba(255,245,180,0.85) 0 4%, transparent 5%);
+    }
+
+    .mini-heart,
+    .splash-text,
+    .combo-pop {
+      animation: floatUp 900ms ease-out forwards;
+    }
+
+    .mini-heart { font-size: 20px; }
+
+    .splash-text {
+      font-size: 16px;
+      color: rgba(108,91,123,0.9);
+      text-shadow: 0 2px 8px rgba(255,255,255,0.75);
+      white-space: nowrap;
+    }
+
+    .combo-pop {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ff7db4;
+      text-shadow: 0 2px 12px rgba(255,255,255,0.9);
+      animation-duration: 1100ms;
+    }
+
+    .trail {
+      position: fixed;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 20;
+      transform: translate(-50%, -50%);
+      opacity: 0.45;
+      filter: blur(1px);
+      animation: trailFade 700ms linear forwards;
+    }
+
+    @keyframes trailFade {
+      from { opacity: 0.42; transform: translate(-50%, -50%) scale(1); }
+      to { opacity: 0; transform: translate(-50%, -50%) scale(0.55); }
+    }
+
+    @keyframes sparkleOut {
+      from { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+      20% { opacity: 1; }
+      to { transform: translate(-50%, -50%) scale(1.25); opacity: 0; }
+    }
+
+    @keyframes floatUp {
+      from {
+        transform: translate(-50%, -50%) translateY(0) scale(0.8);
+        opacity: 0;
+      }
+      18% { opacity: 1; }
+      to {
+        transform: translate(-50%, -50%) translateY(-34px) scale(1.08);
+        opacity: 0;
+      }
+    }
+
+    .hint {
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom) + 14px);
+      transform: translateX(-50%);
+      z-index: 60;
+      background: rgba(255,255,255,0.78);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 13px;
+      box-shadow: 0 10px 28px rgba(121,123,173,0.13);
+      pointer-events: none;
+      animation: fadeHint 8s ease forwards;
+      text-align: center;
+      max-width: calc(100vw - 28px);
+    }
+
+    @keyframes fadeHint {
+      0%, 70% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @media (max-width: 800px) {
+      .ui {
+        flex-direction: row;
+        align-items: flex-start;
+      }
+
+      .title-box {
+        max-width: calc(100vw - 160px);
+      }
+
+      .right-ui {
+        align-items: flex-end;
+      }
+
+      .combo-box {
+        min-width: 110px;
+        padding: 8px 12px;
+      }
+
+      .icon-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ui">
+    <div class="title-box">
+      <h1>Jelly World Deluxe</h1>
+      <p>collide, squish, fling, and cause maximum jelly drama</p>
+    </div>
+
+    <div class="right-ui">
+      <div class="controls">
+        <button id="moreBtn" class="icon-btn" type="button" aria-label="More jelly" title="More jelly">➕</button>
+        <button id="partyBtn" class="icon-btn" type="button" aria-label="Jelly party" title="Jelly party">🎉</button>
+        <button id="resetBtn" class="icon-btn" type="button" aria-label="Reset" title="Reset">↺</button>
+      </div>
+
+      <div class="combo-box">
+        <div class="combo-label">Combo</div>
+        <div class="combo-value" id="comboValue">x0</div>
+        <div class="combo-sub" id="comboSub">calm jelly</div>
+      </div>
+    </div>
+  </div>
+
+  <main id="world" aria-label="Interactive jelly world"></main>
+  <div class="hint">Press, drag, fling, and bump the jellies together</div>
+
+  <script>
+    const world = document.getElementById("world");
+    const moreBtn = document.getElementById("moreBtn");
+    const partyBtn = document.getElementById("partyBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const comboValue = document.getElementById("comboValue");
+    const comboSub = document.getElementById("comboSub");
+
+    const COLORS = [
+      ["#ffb7df", "#ff8fc9"],
+      ["#b9ecff", "#88d7ff"],
+      ["#ffe8a8", "#ffd07a"],
+      ["#d7c7ff", "#b89cff"],
+      ["#bff5cf", "#8be0a4"],
+      ["#ffc8b4", "#ffa28f"]
+    ];
+
+    const HEARTS = ["💖", "✨", "🫧", "💫"];
+    const comboNames = [
+      "calm jelly",
+      "tiny squish",
+      "blob trouble",
+      "jelly menace",
+      "supreme squish",
+      "chaos pudding"
+    ];
+
+    const blobs = [];
+    let rect = world.getBoundingClientRect();
+
+    let audioCtx = null;
+    let audioUnlocked = false;
+
+    let combo = 0;
+    let lastComboTime = 0;
+
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    function updateRect() {
+      rect = world.getBoundingClientRect();
+    }
+    window.addEventListener("resize", updateRect);
+
+    function sparkle(x, y) {
+      const s = document.createElement("div");
+      s.className = "sparkle";
+      s.style.left = x + "px";
+      s.style.top = y + "px";
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 560);
+    }
+
+    function floatHeart(x, y) {
+      const h = document.createElement("div");
+      h.className = "mini-heart";
+      h.textContent = HEARTS[Math.floor(Math.random() * HEARTS.length)];
+      h.style.left = x + "px";
+      h.style.top = y + "px";
+      document.body.appendChild(h);
+      setTimeout(() => h.remove(), 900);
+    }
+
+    function floatText(x, y, text = null) {
+      const words = ["squish!", "boing!", "jelly!", "plop!", "wiggle!"];
+      const t = document.createElement("div");
+      t.className = "splash-text";
+      t.textContent = text || words[Math.floor(Math.random() * words.length)];
+      t.style.left = x + "px";
+      t.style.top = y + "px";
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 900);
+    }
+
+    function comboPop(x, y, text) {
+      const c = document.createElement("div");
+      c.className = "combo-pop";
+      c.textContent = text;
+      c.style.left = x + "px";
+      c.style.top = y + "px";
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 1100);
+    }
+
+    function addTrail(x, y, color) {
+      const t = document.createElement("div");
+      t.className = "trail";
+      t.style.left = x + "px";
+      t.style.top = y + "px";
+      t.style.width = rand(18, 34) + "px";
+      t.style.height = rand(12, 22) + "px";
+      t.style.background = `linear-gradient(135deg, ${color[0]}, ${color[1]})`;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 700);
+    }
+
+    function updateCombo(x = null, y = null) {
+      const now = performance.now();
+      if (now - lastComboTime > 1500) combo = 0;
+      combo += 1;
+      lastComboTime = now;
+
+      comboValue.textContent = "x" + combo;
+      comboSub.textContent =
+        combo >= 12 ? comboNames[5] :
+        combo >= 8 ? comboNames[4] :
+        combo >= 5 ? comboNames[3] :
+        combo >= 3 ? comboNames[2] :
+        combo >= 2 ? comboNames[1] : comboNames[0];
+
+      if (combo >= 5 && x != null && y != null && combo % 3 === 0) {
+        comboPop(x, y, "Combo x" + combo + "!");
+      }
+    }
+
+    function decayComboLoop() {
+      const now = performance.now();
+      if (combo > 0 && now - lastComboTime > 1600) {
+        combo = 0;
+        comboValue.textContent = "x0";
+        comboSub.textContent = "calm jelly";
+      }
+      requestAnimationFrame(decayComboLoop);
+    }
+
+    function unlockAudio() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        audioCtx = new Ctx();
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0.0001;
+      osc.frequency.value = 440;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.01);
+      audioUnlocked = true;
+    }
+
+    function playSquishSound(size = 1) {
+      if (!audioUnlocked || !audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+
+      osc.type = "triangle";
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(1400, now);
+      filter.frequency.exponentialRampToValueAtTime(420, now + 0.12);
+
+      const startFreq = 340 + Math.random() * 160 + size * 25;
+      osc.frequency.setValueAtTime(startFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(120 + Math.random() * 35, now + 0.11);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.06 + size * 0.015, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.13);
+
+      const noiseBuffer = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.035), audioCtx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      }
+
+      const noise = audioCtx.createBufferSource();
+      const noiseGain = audioCtx.createGain();
+      const noiseFilter = audioCtx.createBiquadFilter();
+
+      noise.buffer = noiseBuffer;
+      noiseFilter.type = "bandpass";
+      noiseFilter.frequency.value = 900;
+      noiseGain.gain.setValueAtTime(0.018, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+      noise.start(now);
+      noise.stop(now + 0.035);
+    }
+
+    function nudgeNearby(sourceBlob, power = 1) {
+      blobs.forEach((other) => {
+        if (other === sourceBlob) return;
+        const dx = other.x - sourceBlob.x;
+        const dy = other.y - sourceBlob.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 160) {
+          const push = (160 - dist) / 160;
+          other.vx += (dx / Math.max(dist, 1)) * 1.6 * push * power;
+          other.vy += (dy / Math.max(dist, 1)) * 1.2 * push * power;
+          other.stretchX = Math.max(other.stretchX, 1.03 + push * 0.08);
+          other.stretchY = Math.min(other.stretchY, 0.97 - push * 0.05);
+          other.wobble += 0.2 + push * 0.25;
+        }
+      });
+    }
+
+    function makeBlobFace() {
+      const face = document.createElement("div");
+      face.className = "face";
+      face.innerHTML = `
+        <div class="eye left"></div>
+        <div class="eye right"></div>
+        <div class="mouth"></div>
+        <div class="blush left"></div>
+        <div class="blush right"></div>
+      `;
+      return face;
+    }
+
+    function createBlob(x = null, y = null, size = null) {
+      const el = document.createElement("div");
+      el.className = "blob";
+
+      const blobSize = size || rand(90, 150);
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+      el.style.setProperty("--size", blobSize + "px");
+      el.style.setProperty("--c1", color[0]);
+      el.style.setProperty("--c2", color[1]);
+
+      const core = document.createElement("div");
+      core.className = "blob-core";
+      core.appendChild(makeBlobFace());
+      el.appendChild(core);
+      world.appendChild(el);
+
+      const blob = {
+        el,
+        core,
+        color,
+        x: x ?? rand(blobSize * 0.7, rect.width - blobSize * 0.7),
+        y: y ?? rand(blobSize * 1.0 + 30, rect.height - blobSize * 0.8),
+        baseSize: blobSize,
+        scaleBoost: 1,
+        vx: rand(-0.5, 0.5),
+        vy: rand(-0.3, 0.3),
+        stretchX: 1,
+        stretchY: 1,
+        rotation: rand(-8, 8),
+        wobble: rand(0, Math.PI * 2),
+        wobbleSpeed: rand(0.02, 0.05),
+        dragging: false,
+        pressed: false,
+        pointerId: null,
+        offsetX: 0,
+        offsetY: 0,
+        dragDX: 0,
+        dragDY: 0,
+        pressStart: 0,
+        lastTrail: 0
+      };
+
+      function setPressedState(isPressed) {
+        blob.pressed = isPressed;
+        blob.el.classList.toggle("pressed", isPressed);
+      }
+
+      function squishBlob(strength = 1) {
+        blob.stretchX = Math.max(blob.stretchX, 1.1 + strength * 0.16);
+        blob.stretchY = Math.min(blob.stretchY, 0.9 - strength * 0.13);
+        blob.rotation = clamp(blob.rotation + rand(-3, 3), -18, 18);
+        blob.wobble += 0.32 + strength * 0.35;
+      }
+
+      el.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        unlockAudio();
+
+        blob.dragging = true;
+        setPressedState(true);
+        blob.pointerId = e.pointerId;
+        blob.offsetX = e.clientX - blob.x;
+        blob.offsetY = e.clientY - blob.y;
+        blob.dragDX = 0;
+        blob.dragDY = 0;
+        blob.pressStart = performance.now();
+        blob.vx *= 0.2;
+        blob.vy *= 0.2;
+
+        squishBlob(1);
+        sparkle(blob.x, blob.y);
+        if (Math.random() > 0.45) floatText(blob.x, blob.y - 8);
+        nudgeNearby(blob, 0.5);
+        playSquishSound(blob.baseSize / 100);
+        updateCombo(blob.x, blob.y);
+
+        try { el.setPointerCapture(e.pointerId); } catch {}
+      });
+
+      el.addEventListener("pointermove", (e) => {
+        if (!blob.dragging || blob.pointerId !== e.pointerId) return;
+        e.preventDefault();
+
+        const targetX = e.clientX - blob.offsetX;
+        const targetY = e.clientY - blob.offsetY;
+
+        blob.dragDX = targetX - blob.x;
+        blob.dragDY = targetY - blob.y;
+
+        blob.x = clamp(targetX, blob.baseSize * 0.45, rect.width - blob.baseSize * 0.45);
+        blob.y = clamp(targetY, blob.baseSize * 0.55, rect.height - blob.baseSize * 0.45);
+
+        const speed = Math.min(42, Math.hypot(blob.dragDX, blob.dragDY));
+        blob.stretchX = 1.08 + speed * 0.016;
+        blob.stretchY = 0.94 - speed * 0.007;
+        blob.rotation = clamp(blob.dragDX * 0.22, -22, 22);
+        blob.wobble += 0.14 + speed * 0.012;
+
+        const now = performance.now();
+        if (now - blob.lastTrail > 45) {
+          addTrail(blob.x, blob.y, blob.color);
+          blob.lastTrail = now;
+        }
+      });
+
+      function releaseBlob(e) {
+        if (!blob.dragging) return;
+        if (e && blob.pointerId !== null && e.pointerId !== blob.pointerId) return;
+
+        const heldMs = performance.now() - blob.pressStart;
+
+        blob.dragging = false;
+        setPressedState(false);
+        blob.pointerId = null;
+
+        blob.vx = clamp(blob.dragDX * 0.12, -7, 7);
+        blob.vy = clamp(blob.dragDY * 0.12, -7, 7);
+
+        blob.stretchX = 0.84;
+        blob.stretchY = 1.2;
+        blob.wobble += 0.85;
+
+        if (heldMs < 260 && Math.hypot(blob.dragDX, blob.dragDY) < 10) {
+          floatHeart(blob.x, blob.y - blob.baseSize * 0.28);
+          if (Math.random() > 0.35) floatText(blob.x, blob.y - blob.baseSize * 0.1);
+          nudgeNearby(blob, 0.8);
+        } else if (Math.hypot(blob.dragDX, blob.dragDY) > 8) {
+          floatHeart(blob.x, blob.y - blob.baseSize * 0.3);
+          floatText(blob.x, blob.y - blob.baseSize * 0.12);
+          nudgeNearby(blob, 0.6);
+        }
+
+        playSquishSound(blob.baseSize / 110);
+        blob.dragDX = 0;
+        blob.dragDY = 0;
+      }
+
+      el.addEventListener("pointerup", releaseBlob);
+      el.addEventListener("pointercancel", releaseBlob);
+      el.addEventListener("lostpointercapture", releaseBlob);
+
+      el.addEventListener("dblclick", () => {
+        floatHeart(blob.x, blob.y - 10);
+        sparkle(blob.x, blob.y);
+        blob.vx += rand(-2, 2);
+        blob.vy += rand(-2, 2);
+        blob.stretchX = 1.18;
+        blob.stretchY = 0.88;
+        blob.wobble += 1;
+        nudgeNearby(blob, 1);
+        playSquishSound(blob.baseSize / 85);
+        updateCombo(blob.x, blob.y);
+      });
+
+      blobs.push(blob);
+      return blob;
+    }
+
+    function renderBlob(blob) {
+      const wobbleOffset = Math.sin(blob.wobble) * 0.03;
+      let sx = (blob.stretchX + wobbleOffset) * blob.scaleBoost;
+      let sy = (blob.stretchY - wobbleOffset * 0.8) * blob.scaleBoost;
+
+      if (blob.pressed) {
+        sx += 0.08;
+        sy -= 0.08;
+      }
+
+      blob.el.style.left = blob.x + "px";
+      blob.el.style.top = blob.y + "px";
+      blob.el.style.transform = `translate(-50%, -50%) rotate(${blob.rotation}deg)`;
+      blob.core.style.transform = `scale(${sx}, ${sy})`;
+    }
+
+    function animateBlob(blob) {
+      if (!blob.dragging) {
+        blob.x += blob.vx;
+        blob.y += blob.vy;
+
+        blob.vx *= 0.985;
+        blob.vy *= 0.985;
+
+        if (blob.x < blob.baseSize * 0.45) {
+          blob.x = blob.baseSize * 0.45;
+          blob.vx *= -0.82;
+          blob.stretchX = 1.16;
+          blob.stretchY = 0.9;
+        }
+        if (blob.x > rect.width - blob.baseSize * 0.45) {
+          blob.x = rect.width - blob.baseSize * 0.45;
+          blob.vx *= -0.82;
+          blob.stretchX = 1.16;
+          blob.stretchY = 0.9;
+        }
+        if (blob.y < blob.baseSize * 0.55 + 20) {
+          blob.y = blob.baseSize * 0.55 + 20;
+          blob.vy *= -0.8;
+          blob.stretchX = 0.92;
+          blob.stretchY = 1.14;
+        }
+        if (blob.y > rect.height - blob.baseSize * 0.45) {
+          blob.y = rect.height - blob.baseSize * 0.45;
+          blob.vy *= -0.78;
+          blob.stretchX = 1.12;
+          blob.stretchY = 0.88;
+          if (Math.abs(blob.vy) > 0.6 && Math.random() > 0.75) {
+            sparkle(blob.x, blob.y + blob.baseSize * 0.1);
+          }
+        }
+
+        blob.wobble += blob.wobbleSpeed + Math.abs(blob.vx + blob.vy) * 0.004;
+        blob.rotation *= 0.94;
+      } else {
+        blob.wobble += 0.15;
+      }
+
+      blob.stretchX += (1 - blob.stretchX) * 0.12;
+      blob.stretchY += (1 - blob.stretchY) * 0.12;
+
+      renderBlob(blob);
+    }
+
+    function handleCollisions() {
+      for (let i = 0; i < blobs.length; i++) {
+        for (let j = i + 1; j < blobs.length; j++) {
+          const a = blobs[i];
+          const b = blobs[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy) || 0.001;
+
+          const ra = a.baseSize * 0.32 * a.scaleBoost;
+          const rb = b.baseSize * 0.32 * b.scaleBoost;
+          const minDist = ra + rb;
+
+          if (dist < minDist) {
+            const overlap = minDist - dist;
+            const nx = dx / dist;
+            const ny = dy / dist;
+
+            if (!a.dragging) {
+              a.x -= nx * overlap * 0.5;
+              a.y -= ny * overlap * 0.5;
+            }
+            if (!b.dragging) {
+              b.x += nx * overlap * 0.5;
+              b.y += ny * overlap * 0.5;
+            }
+
+            const impulse = overlap * 0.08;
+
+            if (!a.dragging) {
+              a.vx -= nx * impulse;
+              a.vy -= ny * impulse;
+              a.stretchX = 1.12;
+              a.stretchY = 0.9;
+              a.wobble += 0.22;
+            }
+            if (!b.dragging) {
+              b.vx += nx * impulse;
+              b.vy += ny * impulse;
+              b.stretchX = 1.12;
+              b.stretchY = 0.9;
+              b.wobble += 0.22;
+            }
+
+            if (overlap > 6 && Math.random() > 0.9) {
+              sparkle((a.x + b.x) / 2, (a.y + b.y) / 2);
+              playSquishSound((a.baseSize + b.baseSize) / 220);
+            }
+          }
+        }
+      }
+    }
+
+    function resetBlobs() {
+      blobs.forEach((blob, i) => {
+        blob.x = rand(blob.baseSize * 0.7, rect.width - blob.baseSize * 0.7);
+        blob.y = rand(blob.baseSize * 1.0 + 30, rect.height - blob.baseSize * 0.8);
+        blob.vx = rand(-0.8, 0.8);
+        blob.vy = rand(-0.5, 0.5);
+        blob.stretchX = 1.08;
+        blob.stretchY = 0.92;
+        blob.rotation = rand(-10, 10);
+        blob.wobble += 0.5;
+        blob.scaleBoost = 1;
+
+        setTimeout(() => sparkle(blob.x, blob.y), i * 70);
+      });
+    }
+
+    function jellyParty() {
+      blobs.forEach((blob, i) => {
+        setTimeout(() => {
+          blob.vx += rand(-4, 4);
+          blob.vy += rand(-4, 4);
+          blob.stretchX = 1.18;
+          blob.stretchY = 0.84;
+          blob.rotation = rand(-18, 18);
+          blob.wobble += 1;
+          sparkle(blob.x, blob.y);
+          if (Math.random() > 0.35) floatHeart(blob.x, blob.y - 12);
+        }, i * 60);
+      });
+    }
+
+    moreBtn.addEventListener("click", () => {
+      if (blobs.length >= 16) return;
+      createBlob();
+    });
+
+    partyBtn.addEventListener("click", jellyParty);
+    resetBtn.addEventListener("click", resetBlobs);
+
+    world.addEventListener("dblclick", (e) => {
+      if (e.target !== world) return;
+      if (blobs.length >= 16) return;
+      createBlob(e.clientX, e.clientY, rand(90, 135));
+      sparkle(e.clientX, e.clientY);
+      floatHeart(e.clientX, e.clientY - 10);
+    });
+
+    world.addEventListener("pointerdown", (e) => {
+      if (e.target !== world) return;
+      unlockAudio();
+      if (Math.random() > 0.55) {
+        sparkle(e.clientX, e.clientY);
+      }
+    });
+
+    function init() {
+      updateRect();
+      for (let i = 0; i < 6; i++) createBlob();
+      animate();
+      decayComboLoop();
+    }
+
+    function animate() {
+      handleCollisions();
+      blobs.forEach(animateBlob);
+      requestAnimationFrame(animate);
+    }
+
+    init();
+  </script>
+</body>
+</html>
