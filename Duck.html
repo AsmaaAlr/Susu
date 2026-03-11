@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Duck Pond Chaos</title>
+  <meta name="theme-color" content="#b8ecff" />
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --sky: #ecfbff;
+      --water-1: #a8e6fb;
+      --water-2: #75cfea;
+      --water-3: #5ab8d6;
+      --shore: #cbe99e;
+      --shore-2: #a5d573;
+      --leaf: #7fce74;
+      --leaf-2: #62b55d;
+      --crumb: #f0c46b;
+      --text: #194354;
+      --shadow: rgba(25, 67, 84, 0.14);
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top, var(--sky) 0%, #d9f6ff 45%, #c8effe 100%);
+      font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+    }
+
+    body {
+      position: relative;
+    }
+
+    .sky-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(255,255,255,0.85) 0 10%, transparent 18%),
+        radial-gradient(circle at 80% 10%, rgba(255,255,255,0.65) 0 8%, transparent 16%);
+      opacity: 0.8;
+    }
+
+    .ui {
+      position: fixed;
+      top: calc(env(safe-area-inset-top) + 12px);
+      left: 12px;
+      right: 12px;
+      z-index: 30;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .title-wrap,
+    .controls {
+      pointer-events: auto;
+    }
+
+    .title-wrap {
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 12px 16px;
+      box-shadow: 0 10px 30px var(--shadow);
+    }
+
+    .title-wrap h1 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 34px);
+      line-height: 1;
+    }
+
+    .title-wrap p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      opacity: 0.85;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text);
+      background: rgba(255,255,255,0.82);
+      box-shadow: 0 10px 24px var(--shadow);
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    #pond {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      touch-action: none;
+      background:
+        radial-gradient(circle at 50% 50%, var(--water-1) 0%, var(--water-2) 55%, var(--water-3) 100%);
+    }
+
+    .water,
+    .shore,
+    .lilies,
+    .crumb-layer,
+    .duck-layer,
+    .effect-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .water-a,
+    .water-b {
+      pointer-events: none;
+      opacity: 0.4;
+      mix-blend-mode: screen;
+    }
+
+    .water-a::before,
+    .water-b::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      background:
+        radial-gradient(circle at 20% 40%, rgba(255,255,255,0.32) 0 3%, transparent 7%),
+        radial-gradient(circle at 50% 60%, rgba(255,255,255,0.2) 0 3%, transparent 7%),
+        radial-gradient(circle at 80% 25%, rgba(255,255,255,0.24) 0 3%, transparent 7%);
+      background-size: 260px 180px;
+      animation: drift 16s linear infinite;
+    }
+
+    .water-b::before {
+      background-size: 320px 240px;
+      animation-duration: 22s;
+      animation-direction: reverse;
+      opacity: 0.8;
+    }
+
+    @keyframes drift {
+      from { transform: translateX(-5%) translateY(0); }
+      to { transform: translateX(5%) translateY(-2%); }
+    }
+
+    .shore {
+      pointer-events: none;
+    }
+
+    .shore-top,
+    .shore-bottom {
+      height: 18vh;
+      inset: auto 0 0 0;
+      background:
+        radial-gradient(circle at 20% 10%, #e9f8c7 0 18%, transparent 19%),
+        radial-gradient(circle at 70% 30%, #d8f0b2 0 14%, transparent 15%),
+        linear-gradient(to top, var(--shore-2), var(--shore));
+    }
+
+    .shore-top {
+      top: -3vh;
+      bottom: auto;
+      transform: rotate(180deg);
+    }
+
+    .shore-bottom {
+      bottom: -2vh;
+      border-top-left-radius: 45% 40%;
+      border-top-right-radius: 30% 35%;
+    }
+
+    .reeds {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .reeds::before,
+    .reeds::after {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 220px;
+      bottom: 4vh;
+      background:
+        linear-gradient(to top, transparent 0 8%, rgba(0,0,0,0) 8%),
+        repeating-linear-gradient(
+          88deg,
+          transparent 0 12px,
+          rgba(94,155,84,0.95) 12px 16px,
+          transparent 16px 22px
+        );
+      mask: linear-gradient(to top, black, black 70%, transparent 100%);
+      opacity: 0.85;
+      filter: drop-shadow(0 8px 8px rgba(0,0,0,0.08));
+    }
+
+    .reeds::before { left: -10px; }
+    .reeds::after { right: -10px; }
+
+    .lily {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 35%, #a8eb94 0 20%, transparent 21%),
+        radial-gradient(circle at center, var(--leaf) 0 55%, var(--leaf-2) 56% 100%);
+      clip-path: polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 0);
+      opacity: 0.92;
+      filter: drop-shadow(0 8px 6px rgba(0,0,0,0.08));
+    }
+
+    .crumb {
+      position: absolute;
+      width: 12px;
+      height: 10px;
+      border-radius: 8px 9px 7px 8px;
+      background: var(--crumb);
+      box-shadow:
+        inset -1px -2px 0 rgba(171, 115, 34, 0.15),
+        0 5px 10px rgba(0,0,0,0.12);
+      animation: crumbPop 520ms ease-out forwards;
+    }
+
+    @keyframes crumbPop {
+      from {
+        transform: scale(0.2);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .duck {
+      position: absolute;
+      width: 78px;
+      height: 78px;
+      transform: translate(-50%, -50%);
+      user-select: none;
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    .duck svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      filter: drop-shadow(0 8px 12px rgba(0,0,0,0.14));
+    }
+
+    .duck .duck-body {
+      transform-origin: center;
+      animation: bob 1.8s ease-in-out infinite;
+    }
+
+    .duck .duck-foot-left,
+    .duck .duck-foot-right {
+      transform-origin: center;
+      animation: kick 0.9s ease-in-out infinite alternate;
+    }
+
+    .duck .duck-foot-right {
+      animation-delay: 0.15s;
+    }
+
+    .duck .duck-head {
+      transform-origin: 58% 40%;
+      animation: peep 2s ease-in-out infinite;
+    }
+
+    .duck .hat {
+      display: none;
+    }
+
+    .duck.fancy .hat {
+      display: block;
+    }
+
+    @keyframes bob {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-1px) rotate(1deg); }
+    }
+
+    @keyframes kick {
+      from { transform: rotate(-8deg); }
+      to { transform: rotate(8deg); }
+    }
+
+    @keyframes peep {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-2deg); }
+      75% { transform: rotate(3deg); }
+    }
+
+    .ripple,
+    .splash,
+    .hearts {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
+    .ripple {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 3px solid rgba(255,255,255,0.75);
+      animation: rippleOut 900ms ease-out forwards;
+    }
+
+    @keyframes rippleOut {
+      from {
+        width: 12px;
+        height: 12px;
+        opacity: 0.8;
+      }
+      to {
+        width: 96px;
+        height: 96px;
+        opacity: 0;
+      }
+    }
+
+    .splash {
+      width: 80px;
+      height: 80px;
+      animation: splashOut 700ms ease-out forwards;
+    }
+
+    .splash::before,
+    .splash::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,0.95) 0 7%, transparent 8%),
+        radial-gradient(circle at 22% 62%, rgba(255,255,255,0.75) 0 6%, transparent 7%),
+        radial-gradient(circle at 78% 65%, rgba(255,255,255,0.75) 0 6%, transparent 7%);
+    }
+
+    .splash::after {
+      filter: blur(2px);
+      opacity: 0.65;
+    }
+
+    @keyframes splashOut {
+      from { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+      20% { opacity: 1; }
+      to { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+    }
+
+    .hearts {
+      font-size: 20px;
+      animation: floatUp 1100ms ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      from {
+        transform: translate(-50%, -50%) translateY(0) scale(0.8);
+        opacity: 0;
+      }
+      20% { opacity: 1; }
+      to {
+        transform: translate(-50%, -50%) translateY(-55px) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    .hint {
+      position: absolute;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom) + 16px);
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.75);
+      box-shadow: 0 10px 24px var(--shadow);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 13px;
+      z-index: 15;
+      pointer-events: none;
+      animation: fadeHint 8s ease forwards;
+    }
+
+    @keyframes fadeHint {
+      0%, 65% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @media (max-width: 720px) {
+      .ui {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .controls {
+        justify-content: flex-start;
+      }
+
+      button {
+        font-size: 13px;
+        padding: 9px 12px;
+      }
+
+      .duck {
+        width: 70px;
+        height: 70px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sky-glow"></div>
+
+  <header class="ui">
+    <div class="title-wrap">
+      <h1>Duck Pond Chaos</h1>
+      <p>tap to drop breadcrumbs • ducks panic politely</p>
+    </div>
+
+    <div class="controls">
+      <button id="feedBtn" type="button">Drop Bread</button>
+      <button id="splashBtn" type="button">Big Splash</button>
+      <button id="chaosBtn" type="button">More Ducks</button>
+    </div>
+  </header>
+
+  <main id="pond" aria-label="Interactive duck pond">
+    <div class="water water-a"></div>
+    <div class="water water-b"></div>
+    <div class="shore shore-top"></div>
+    <div class="shore shore-bottom"></div>
+    <div class="reeds"></div>
+    <div class="lilies" id="lilies"></div>
+    <div class="crumb-layer" id="crumbLayer"></div>
+    <div class="duck-layer" id="duckLayer"></div>
+    <div class="effect-layer" id="effectLayer"></div>
+
+    <div class="hint">Tap anywhere to feed the ducks</div>
+  </main>
+
+  <script>
+    const pond = document.getElementById("pond");
+    const duckLayer = document.getElementById("duckLayer");
+    const crumbLayer = document.getElementById("crumbLayer");
+    const effectLayer = document.getElementById("effectLayer");
+    const lilies = document.getElementById("lilies");
+
+    const feedBtn = document.getElementById("feedBtn");
+    const splashBtn = document.getElementById("splashBtn");
+    const chaosBtn = document.getElementById("chaosBtn");
+
+    const ducks = [];
+    const maxDucks = 14;
+
+    const random = (min, max) => Math.random() * (max - min) + min;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    let targetPoint = null;
+    let rect = pond.getBoundingClientRect();
+
+    function updateRect() {
+      rect = pond.getBoundingClientRect();
+    }
+    window.addEventListener("resize", updateRect);
+
+    function duckSVG() {
+      return `
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <g class="duck-body">
+          <ellipse cx="52" cy="58" rx="28" ry="20" fill="#ffe36b"></ellipse>
+          <ellipse cx="44" cy="58" rx="18" ry="13" fill="#fff3a5" opacity="0.7"></ellipse>
+          <g class="duck-head">
+            <circle cx="67" cy="40" r="15" fill="#ffe36b"></circle>
+            <circle cx="72" cy="37" r="2.4" fill="#243746"></circle>
+            <path d="M77 41 C85 40, 88 44, 80 47 C75 48, 71 47, 70 45 C70 42, 73 41, 77 41Z" fill="#ff9e4b"></path>
+            <circle cx="65" cy="32" r="4.5" fill="#fff5ba" opacity="0.55"></circle>
+          </g>
+          <path d="M24 57 C16 53, 14 61, 24 64 C26 62, 27 59, 24 57Z" fill="#fff3a5" opacity="0.95"></path>
+          <g class="hat">
+            <ellipse cx="67" cy="24" rx="15" ry="4" fill="#ff8fc6"></ellipse>
+            <rect x="61" y="13" width="12" height="11" rx="3" fill="#ff8fc6"></rect>
+            <rect x="64" y="11" width="6" height="5" rx="2" fill="#ffdf6b"></rect>
+          </g>
+        </g>
+        <g class="duck-foot-left">
+          <path d="M40 76 C33 79, 32 83, 41 84 C44 83, 46 82, 48 80 C46 78, 43 77, 40 76Z" fill="#ff9e4b"></path>
+        </g>
+        <g class="duck-foot-right">
+          <path d="M57 78 C52 80, 51 84, 59 85 C62 84, 66 83, 68 80 C66 79, 61 78, 57 78Z" fill="#ff9e4b"></path>
+        </g>
+      </svg>`;
+    }
+
+    function createLilies(count = 10) {
+      lilies.innerHTML = "";
+      for (let i = 0; i < count; i++) {
+        const lily = document.createElement("div");
+        lily.className = "lily";
+        lily.style.left = `${random(5, 90)}%`;
+        lily.style.top = `${random(16, 82)}%`;
+        lily.style.transform = `translate(-50%, -50%) rotate(${random(0, 360)}deg) scale(${random(0.7, 1.2)})`;
+        lily.style.opacity = random(0.75, 1).toFixed(2);
+        lilies.appendChild(lily);
+      }
+    }
+
+    function createDuck() {
+      const el = document.createElement("div");
+      const fancy = Math.random() > 0.7;
+      el.className = `duck${fancy ? " fancy" : ""}`;
+      el.innerHTML = duckSVG();
+      duckLayer.appendChild(el);
+
+      const duck = {
+        el,
+        x: random(rect.width * 0.15, rect.width * 0.85),
+        y: random(rect.height * 0.22, rect.height * 0.82),
+        angle: random(0, Math.PI * 2),
+        speed: random(0.25, 0.55),
+        wiggle: random(0.004, 0.02),
+        panic: 0,
+        wanderTime: 0,
+        desiredX: null,
+        desiredY: null,
+        turnBias: random(-0.02, 0.02)
+      };
+
+      ducks.push(duck);
+      return duck;
+    }
+
+    function addDuck(amount = 1) {
+      for (let i = 0; i < amount && ducks.length < maxDucks; i++) {
+        createDuck();
+      }
+    }
+
+    function dropRipple(x, y) {
+      const ripple = document.createElement("div");
+      ripple.className = "ripple";
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      effectLayer.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 900);
+    }
+
+    function dropSplash(x, y) {
+      const splash = document.createElement("div");
+      splash.className = "splash";
+      splash.style.left = `${x}px`;
+      splash.style.top = `${y}px`;
+      effectLayer.appendChild(splash);
+      setTimeout(() => splash.remove(), 700);
+    }
+
+    function floatHeart(x, y) {
+      const heart = document.createElement("div");
+      heart.className = "hearts";
+      heart.textContent = Math.random() > 0.5 ? "💛" : "✨";
+      heart.style.left = `${x}px`;
+      heart.style.top = `${y}px`;
+      effectLayer.appendChild(heart);
+      setTimeout(() => heart.remove(), 1100);
+    }
+
+    function scatterCrumbs(x, y, count = 9) {
+      targetPoint = { x, y, time: performance.now() };
+
+      for (let i = 0; i < count; i++) {
+        const crumb = document.createElement("div");
+        crumb.className = "crumb";
+        const cx = x + random(-36, 36);
+        const cy = y + random(-26, 26);
+        crumb.style.left = `${cx}px`;
+        crumb.style.top = `${cy}px`;
+        crumbLayer.appendChild(crumb);
+        setTimeout(() => crumb.remove(), 2400 + Math.random() * 1200);
+
+        if (Math.random() > 0.65) dropRipple(cx, cy);
+      }
+
+      ducks.forEach((duck) => {
+        duck.desiredX = x + random(-22, 22);
+        duck.desiredY = y + random(-18, 18);
+        duck.panic = random(0.8, 1.6);
+      });
+
+      dropSplash(x, y);
+      floatHeart(x, y - 6);
+    }
+
+    function placeAtClient(clientX, clientY, extraCrumbs = 0) {
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+      scatterCrumbs(x, y, 8 + extraCrumbs);
+    }
+
+    let painting = false;
+
+    pond.addEventListener("pointerdown", (e) => {
+      painting = true;
+      placeAtClient(e.clientX, e.clientY, 2);
+    });
+
+    pond.addEventListener("pointermove", (e) => {
+      if (!painting) return;
+      placeAtClient(e.clientX, e.clientY, 0);
+    });
+
+    window.addEventListener("pointerup", () => {
+      painting = false;
+    });
+
+    feedBtn.addEventListener("click", () => {
+      scatterCrumbs(
+        random(rect.width * 0.2, rect.width * 0.8),
+        random(rect.height * 0.25, rect.height * 0.8),
+        12
+      );
+    });
+
+    splashBtn.addEventListener("click", () => {
+      for (let i = 0; i < 6; i++) {
+        setTimeout(() => {
+          const x = random(rect.width * 0.15, rect.width * 0.85);
+          const y = random(rect.height * 0.2, rect.height * 0.85);
+          dropSplash(x, y);
+          dropRipple(x, y);
+        }, i * 120);
+      }
+    });
+
+    chaosBtn.addEventListener("click", () => {
+      addDuck(2);
+      const x = random(rect.width * 0.2, rect.width * 0.8);
+      const y = random(rect.height * 0.25, rect.height * 0.8);
+      scatterCrumbs(x, y, 10);
+    });
+
+    function normalizeAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function moveDuck(duck, dt) {
+      const margin = 35;
+
+      let targetX = duck.desiredX;
+      let targetY = duck.desiredY;
+
+      if (targetPoint && performance.now() - targetPoint.time > 3200) {
+        targetPoint = null;
+      }
+
+      if (targetPoint && duck.desiredX == null) {
+        targetX = targetPoint.x;
+        targetY = targetPoint.y;
+      }
+
+      if (targetX != null && targetY != null) {
+        const dx = targetX - duck.x;
+        const dy = targetY - duck.y;
+        const desiredAngle = Math.atan2(dy, dx);
+        duck.angle += normalizeAngle(desiredAngle - duck.angle) * 0.05;
+        duck.speed = clamp(duck.speed + 0.01 * duck.panic, 0.35, 1.6);
+
+        if (Math.hypot(dx, dy) < 28) {
+          duck.desiredX = null;
+          duck.desiredY = null;
+          duck.panic = clamp(duck.panic - 0.08, 0, 2);
+          if (Math.random() > 0.55) floatHeart(duck.x, duck.y - 22);
+        }
+      } else {
+        duck.wanderTime -= dt;
+        if (duck.wanderTime <= 0) {
+          duck.wanderTime = random(800, 2500);
+          duck.turnBias = random(-0.035, 0.035);
+        }
+        duck.angle += duck.turnBias + Math.sin(performance.now() * duck.wiggle) * 0.003;
+        duck.speed = clamp(duck.speed * 0.995, 0.22, 0.7);
+      }
+
+      duck.x += Math.cos(duck.angle) * duck.speed * dt * 0.06;
+      duck.y += Math.sin(duck.angle) * duck.speed * dt * 0.06;
+
+      if (duck.x < margin) {
+        duck.x = margin;
+        duck.angle = Math.PI - duck.angle;
+        dropRipple(duck.x, duck.y);
+      }
+      if (duck.x > rect.width - margin) {
+        duck.x = rect.width - margin;
+        duck.angle = Math.PI - duck.angle;
+        dropRipple(duck.x, duck.y);
+      }
+      if (duck.y < 80) {
+        duck.y = 80;
+        duck.angle = -duck.angle;
+        dropRipple(duck.x, duck.y);
+      }
+      if (duck.y > rect.height - 50) {
+        duck.y = rect.height - 50;
+        duck.angle = -duck.angle;
+        dropRipple(duck.x, duck.y);
+      }
+
+      duck.panic = clamp(duck.panic * 0.986, 0, 2);
+
+      const deg = duck.angle * (180 / Math.PI);
+      const bounce = Math.sin(performance.now() * 0.006 + duck.x * 0.02) * 2;
+      const flip = Math.cos(duck.angle) < 0 ? "scaleY(-1)" : "";
+      duck.el.style.left = `${duck.x}px`;
+      duck.el.style.top = `${duck.y}px`;
+      duck.el.style.transform = `translate(-50%, -50%) rotate(${deg}deg) ${flip} translateY(${bounce}px)`;
+    }
+
+    let last = performance.now();
+    function animate(now) {
+      const dt = Math.min(32, now - last);
+      last = now;
+      ducks.forEach((duck) => moveDuck(duck, dt));
+      requestAnimationFrame(animate);
+    }
+
+    createLilies(11);
+    addDuck(6);
+    updateRect();
+    requestAnimationFrame(animate);
+
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        dropRipple(
+          random(rect.width * 0.15, rect.width * 0.85),
+          random(rect.height * 0.2, rect.height * 0.8)
+        );
+      }, i * 320);
+    }
+  </script>
+</body>
+</html>
