@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#dff7d8" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Lulu 🐥🌷</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100dvh;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Comic Sans MS", "Arial Rounded MT Bold", sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 243, 176, 0.35), transparent 25%),
+        radial-gradient(circle at 80% 30%, rgba(255, 200, 230, 0.28), transparent 25%),
+        radial-gradient(circle at 60% 80%, rgba(183, 235, 194, 0.28), transparent 30%),
+        linear-gradient(180deg, #e9f9ff 0%, #f5ffe8 45%, #eef9d6 100%);
+      background-size: 100% 100%;
+      animation: bgFloat 12s ease-in-out infinite alternate;
+      cursor: pointer;
+    }
+
+    body {
+      position: relative;
+      padding-top: env(safe-area-inset-top);
+    }
+
+    @keyframes bgFloat {
+      from {
+        filter: saturate(1) brightness(1);
+      }
+      to {
+        filter: saturate(1.08) brightness(1.02);
+      }
+    }
+
+    .sun-glow {
+      position: absolute;
+      top: 6%;
+      right: 8%;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 241, 160, 0.85) 0%, rgba(255, 241, 160, 0.35) 45%, transparent 75%);
+      filter: blur(10px);
+      pointer-events: none;
+      z-index: 0;
+      animation: sunPulse 5s ease-in-out infinite;
+    }
+
+    @keyframes sunPulse {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+
+    .page-title {
+      position: fixed;
+      top: calc(env(safe-area-inset-top) + 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      pointer-events: none;
+      font-size: clamp(1.9rem, 4vw, 3.1rem);
+      color: #fffef7;
+      text-shadow:
+        0 0 10px rgba(255,255,255,0.9),
+        0 0 18px rgba(255, 216, 120, 0.75),
+        0 0 30px rgba(186, 234, 179, 0.7);
+      letter-spacing: 2px;
+      animation: titleBounce 3.4s ease-in-out infinite;
+    }
+
+    @keyframes titleBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
+      50% { transform: translateX(-50%) translateY(-2px) scale(1.04); }
+    }
+
+    .name {
+      position: absolute;
+      font-weight: bold;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: none;
+      z-index: 4;
+      opacity: 0;
+      animation-name: driftName;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      text-shadow: 0 2px 10px rgba(255,255,255,0.7);
+    }
+
+    @keyframes driftName {
+      0% {
+        transform: translate(var(--sx), var(--sy)) rotate(var(--r1)) scale(0.7);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.75;
+      }
+      50% {
+        opacity: 0.95;
+      }
+      100% {
+        transform: translate(var(--ex), var(--ey)) rotate(var(--r2)) scale(1.15);
+        opacity: 0;
+      }
+    }
+
+    .duck {
+      position: absolute;
+      user-select: none;
+      pointer-events: none;
+      z-index: 6;
+      opacity: 0;
+      filter: drop-shadow(0 6px 10px rgba(255,255,255,0.55));
+      animation-name: floatDuck;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+
+    @keyframes floatDuck {
+      0% {
+        transform: translate(var(--dx1), var(--dy1)) scale(0.8) rotate(0deg);
+        opacity: 0;
+      }
+      12% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--dx2), var(--dy2)) scale(1.15) rotate(8deg);
+        opacity: 0;
+      }
+    }
+
+    .garden {
+      position: absolute;
+      user-select: none;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0;
+      filter: drop-shadow(0 4px 8px rgba(255,255,255,0.55));
+      animation-name: swayGarden;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+
+    @keyframes swayGarden {
+      0% {
+        transform: translate(var(--gx1), var(--gy1)) rotate(-4deg) scale(0.75);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.9;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--gx2), var(--gy2)) rotate(10deg) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    .sparkle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 0 12px rgba(255,255,255,0.95);
+      pointer-events: none;
+      z-index: 2;
+      animation: twinkle 2.6s ease-in-out infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% {
+        transform: scale(0.65);
+        opacity: 0.28;
+      }
+      50% {
+        transform: scale(1.45);
+        opacity: 1;
+      }
+    }
+
+    .grass-line {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 18vh;
+      background:
+        radial-gradient(circle at 10% 100%, #c9ef9e 0 10%, transparent 11%),
+        radial-gradient(circle at 20% 100%, #b8e889 0 12%, transparent 13%),
+        radial-gradient(circle at 32% 100%, #d7f6ad 0 9%, transparent 10%),
+        radial-gradient(circle at 44% 100%, #bee88f 0 11%, transparent 12%),
+        radial-gradient(circle at 58% 100%, #d6f5b0 0 10%, transparent 11%),
+        radial-gradient(circle at 70% 100%, #bce58c 0 12%, transparent 13%),
+        radial-gradient(circle at 83% 100%, #d5f3ad 0 10%, transparent 11%),
+        radial-gradient(circle at 94% 100%, #b7e180 0 12%, transparent 13%),
+        linear-gradient(180deg, rgba(182, 234, 145, 0) 0%, rgba(180, 234, 140, 0.85) 55%, rgba(154, 217, 112, 0.95) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .click-burst {
+      position: absolute;
+      pointer-events: none;
+      user-select: none;
+      z-index: 60;
+      animation: burstFly 1.6s ease-out forwards;
+      filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
+    }
+
+    @keyframes burstFly {
+      0% {
+        transform: translate(0, 0) scale(0.45) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--bx), var(--by)) scale(1.35) rotate(var(--br));
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .page-title {
+        top: calc(env(safe-area-inset-top) + 10px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sun-glow"></div>
+  <div class="grass-line"></div>
+
+  <div class="page-title">Lulu 🐥🌷</div>
+
+  <script>
+    const names = ["Lulu", "Lulu", "Lulu", "Lu", "Lulu 🌼"];
+    const ducks = ["🐥", "🐣", "🐤"];
+    const gardenItems = ["🌷", "🌼", "🌸", "🌻", "🪻", "🌺", "🍀", "🌿"];
+    const clickItems = ["💛", "✨", "🌼", "🐥", "🌸", "⭐", "🫧"];
+    const pastelColors = [
+      "#ffd966", "#ffc6df", "#ffdf91", "#b8ecff",
+      "#cfeea7", "#ffeaa7", "#e5c9ff", "#fff7c2"
+    ];
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function randItem(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function createName() {
+      const el = document.createElement("div");
+      el.className = "name";
+      el.textContent = randItem(names);
+
+      el.style.left = "0";
+      el.style.top = "0";
+      el.style.fontSize = `${rand(22, 60)}px`;
+      el.style.color = randItem(pastelColors);
+      el.style.setProperty("--sx", `${rand(-15, 110)}vw`);
+      el.style.setProperty("--sy", `${rand(-15, 110)}vh`);
+      el.style.setProperty("--ex", `${rand(-15, 110)}vw`);
+      el.style.setProperty("--ey", `${rand(-15, 110)}vh`);
+      el.style.setProperty("--r1", `${rand(-40, 40)}deg`);
+      el.style.setProperty("--r2", `${rand(-90, 90)}deg`);
+      el.style.animationDuration = `${rand(8, 16)}s`;
+      el.style.animationDelay = `${rand(0, 8)}s`;
+
+      document.body.appendChild(el);
+    }
+
+    function createDuck() {
+      const el = document.createElement("div");
+      el.className = "duck";
+      el.textContent = randItem(ducks);
+
+      el.style.left = "0";
+      el.style.top = "0";
+      el.style.fontSize = `${rand(24, 54)}px`;
+      el.style.setProperty("--dx1", `${rand(-15, 110)}vw`);
+      el.style.setProperty("--dy1", `${rand(-10, 95)}vh`);
+      el.style.setProperty("--dx2", `${rand(-15, 110)}vw`);
+      el.style.setProperty("--dy2", `${rand(-10, 95)}vh`);
+      el.style.animationDuration = `${rand(10, 18)}s`;
+      el.style.animationDelay = `${rand(0, 10)}s`;
+
+      document.body.appendChild(el);
+    }
+
+    function createGarden() {
+      const el = document.createElement("div");
+      el.className = "garden";
+      el.textContent = randItem(gardenItems);
+
+      el.style.left = "0";
+      el.style.top = "0";
+      el.style.fontSize = `${rand(18, 42)}px`;
+      el.style.setProperty("--gx1", `${rand(-10, 110)}vw`);
+      el.style.setProperty("--gy1", `${rand(5, 105)}vh`);
+      el.style.setProperty("--gx2", `${rand(-10, 110)}vw`);
+      el.style.setProperty("--gy2", `${rand(5, 105)}vh`);
+      el.style.animationDuration = `${rand(9, 18)}s`;
+      el.style.animationDelay = `${rand(0, 10)}s`;
+
+      document.body.appendChild(el);
+    }
+
+    function createSparkle() {
+      const el = document.createElement("div");
+      el.className = "sparkle";
+      el.style.left = `${rand(0, 100)}vw`;
+      el.style.top = `${rand(0, 100)}vh`;
+      el.style.animationDelay = `${rand(0, 3)}s`;
+      el.style.animationDuration = `${rand(1.8, 3.8)}s`;
+      document.body.appendChild(el);
+    }
+
+let isDrawing = false;
+let lastDrawTime = 0;
+
+    function createTrail(x, y) {
+      const el = document.createElement("div");
+      el.className = "click-burst";
+      el.textContent = randItem(clickItems);
+
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.fontSize = `${rand(16, 30)}px`;
+      el.style.color = randItem(pastelColors);
+      el.style.setProperty("--bx", `${rand(-20, 20)}px`);
+      el.style.setProperty("--by", `${rand(-20, 20)}px`);
+      el.style.setProperty("--br", `${rand(-90, 90)}deg`);
+      el.style.animationDuration = `${rand(0.8, 1.4)}s`;
+
+      document.body.appendChild(el);
+
+      setTimeout(() => el.remove(), 1400);
+    }
+
+    function drawAt(x, y) {
+      const now = Date.now();
+      if (now - lastDrawTime < 35) return; 
+      lastDrawTime = now;
+      createTrail(x, y);
+    }
+
+    document.addEventListener("pointerdown", (e) => {
+      isDrawing = true;
+      drawAt(e.clientX, e.clientY);
+    });
+
+    document.addEventListener("pointermove", (e) => {
+      if (!isDrawing) return;
+      drawAt(e.clientX, e.clientY);
+    });
+
+    document.addEventListener("pointerup", () => {
+      isDrawing = false;
+    });
+
+    document.addEventListener("pointercancel", () => {
+      isDrawing = false;
+    });
+
+    document.addEventListener("touchmove", (e) => {
+      if (!isDrawing) return;
+      const touch = e.touches[0];
+      if (touch) drawAt(touch.clientX, touch.clientY);
+    }, { passive: true });
+
+    for (let i = 0; i < 26; i++) createName();
+    for (let i = 0; i < 24; i++) createGarden();
+    for (let i = 0; i < 16; i++) createDuck();
+    for (let i = 0; i < 30; i++) createSparkle();
+  </script>
+</body>
+</html>
