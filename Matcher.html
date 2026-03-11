@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Sock Matcher Supreme</title>
+  <style>
+    :root{
+      --bg1:#fff7fb;
+      --bg2:#eef7ff;
+      --ink:#2a2340;
+      --card:#ffffffcc;
+      --accent:#ff5fa2;
+      --accent2:#6f7cff;
+      --good:#18b777;
+      --bad:#ff7a59;
+      --gold:#ffcc4d;
+      --shadow:0 12px 30px rgba(76,57,109,.15);
+      --radius:24px;
+      --tile-size:clamp(74px, 18vw, 120px);
+      --blur:0px;
+      --board-rotate:0deg;
+      --board-scale:1;
+      --flip-duration:.35s;
+    }
+
+    * { box-sizing:border-box; }
+    html, body {
+      height:100%;
+      margin:0;
+      font-family: ui-rounded, "SF Pro Rounded", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 20% 20%, #fff 0, #fff0 28%),
+        radial-gradient(circle at 85% 15%, #ffe8f5 0, #ffe8f500 22%),
+        radial-gradient(circle at 15% 85%, #dff4ff 0, #dff4ff00 20%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow-x:hidden;
+    }
+
+    body.event-lightsout::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:rgba(18,13,31,.38);
+      pointer-events:none;
+      z-index:8;
+    }
+
+    body.event-blur {
+      --blur: 3px;
+    }
+
+    .wrap{
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      padding:
+        max(14px, env(safe-area-inset-top))
+        14px
+        max(18px, env(safe-area-inset-bottom))
+        14px;
+      max-width:980px;
+      margin:0 auto;
+    }
+
+    .topbar{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:12px;
+      align-items:start;
+    }
+
+    .titlebox{
+      background:var(--card);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.75);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      padding:16px 18px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .titlebox::after{
+      content:"🧦";
+      position:absolute;
+      right:12px;
+      top:10px;
+      font-size:40px;
+      opacity:.16;
+      transform:rotate(-10deg);
+    }
+
+    h1{
+      margin:0;
+      font-size:clamp(1.5rem, 4vw, 2.5rem);
+      line-height:1;
+      letter-spacing:.2px;
+    }
+
+    .subtitle{
+      margin-top:8px;
+      opacity:.8;
+      font-size:.98rem;
+    }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button{
+      appearance:none;
+      border:none;
+      border-radius:999px;
+      padding:12px 16px;
+      font-weight:800;
+      font-size:.97rem;
+      color:white;
+      background:linear-gradient(135deg, var(--accent), #ff8ac0);
+      box-shadow: 0 10px 22px rgba(255,95,162,.27);
+      cursor:pointer;
+      transition:transform .12s ease, filter .18s ease, box-shadow .18s ease;
+      touch-action:manipulation;
+    }
+
+    button.secondary{
+      background:linear-gradient(135deg, var(--accent2), #8aa4ff);
+      box-shadow: 0 10px 22px rgba(111,124,255,.25);
+    }
+
+    button.ghost{
+      background:white;
+      color:var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    button:hover{ transform:translateY(-1px); filter:brightness(1.03); }
+    button:active{ transform:translateY(1px) scale(.985); }
+
+    .hud{
+      display:grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap:10px;
+    }
+
+    .pill{
+      background:var(--card);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.7);
+      border-radius:22px;
+      padding:12px 14px;
+      box-shadow:var(--shadow);
+      min-width:0;
+    }
+
+    .label{
+      display:block;
+      font-size:.78rem;
+      opacity:.68;
+      margin-bottom:4px;
+      font-weight:700;
+      letter-spacing:.2px;
+      text-transform:uppercase;
+    }
+
+    .value{
+      font-size:1.25rem;
+      font-weight:900;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .progress-shell{
+      margin-top:10px;
+      height:12px;
+      background:#ffffff88;
+      border-radius:999px;
+      overflow:hidden;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.8);
+    }
+    .progress-bar{
+      height:100%;
+      width:100%;
+      background:linear-gradient(90deg, #6fe2a0, #ffde67, #ff7a59);
+      transition: width .2s linear;
+      border-radius:999px;
+    }
+
+    .event-banner{
+      position:sticky;
+      top:6px;
+      z-index:9;
+      align-self:center;
+      padding:12px 16px;
+      background:linear-gradient(135deg, #2a2340, #5f4e9e);
+      color:white;
+      border-radius:999px;
+      box-shadow:0 18px 38px rgba(42,35,64,.28);
+      font-weight:900;
+      letter-spacing:.2px;
+      transform:translateY(-10px) scale(.96);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s ease, transform .2s ease;
+      text-align:center;
+      max-width:min(96%, 720px);
+    }
+    .event-banner.show{
+      opacity:1;
+      transform:translateY(0) scale(1);
+    }
+
+    .play-area{
+      position:relative;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .board-shell{
+      position:relative;
+      background:linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.56));
+      border:1px solid rgba(255,255,255,.8);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(12px);
+      border-radius:32px;
+      padding:16px;
+      overflow:hidden;
+      min-height:420px;
+    }
+
+    .board{
+      position:relative;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap:12px;
+      justify-items:center;
+      align-items:center;
+      filter:blur(var(--blur));
+      transform: rotate(var(--board-rotate)) scale(var(--board-scale));
+      transition:filter .22s ease, transform .22s ease;
+    }
+
+    .sock-card{
+      position:relative;
+      width:100%;
+      aspect-ratio: 1 / 1.12;
+      border:none;
+      background:transparent;
+      padding:0;
+      cursor:pointer;
+      perspective:1000px;
+      -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation;
+    }
+
+    .sock-card:disabled{
+      cursor:default;
+    }
+
+    .sock-inner{
+      position:absolute;
+      inset:0;
+      transition:transform var(--flip-duration) ease;
+      transform-style:preserve-3d;
+    }
+
+    .sock-card.flipped .sock-inner,
+    .sock-card.matched .sock-inner{
+      transform:rotateY(180deg);
+    }
+
+    .sock-face{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:24px;
+      backface-visibility:hidden;
+      overflow:hidden;
+      user-select:none;
+      box-shadow:0 8px 20px rgba(75,56,120,.13);
+    }
+
+    .sock-back{
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), transparent 28%),
+        linear-gradient(135deg, #8ba8ff, #ff91c4);
+      border:1px solid rgba(255,255,255,.85);
+    }
+
+    .sock-back .back-mark{
+      font-size:2rem;
+      filter: drop-shadow(0 4px 7px rgba(0,0,0,.15));
+    }
+
+    .sock-front{
+      transform:rotateY(180deg);
+      background:linear-gradient(180deg, #fff, #fffafc);
+      border:1px solid rgba(245,230,240,.95);
+      padding:8px;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .sock-emoji{
+      font-size:clamp(2.2rem, 5vw, 3.2rem);
+      line-height:1;
+      transform-origin:center;
+    }
+
+    .sock-name{
+      font-size:.78rem;
+      font-weight:900;
+      text-align:center;
+      line-height:1.05;
+      max-width:95%;
+    }
+
+    .sock-card.flipped .sock-emoji{
+      animation:bounce .45s ease;
+    }
+
+    .sock-card.matched .sock-front{
+      background:linear-gradient(180deg, #fffdf0, #fff9dc);
+      box-shadow:0 8px 24px rgba(255,204,77,.25);
+    }
+
+    .sock-card.matched .sock-emoji{
+      animation:matchedPop .7s ease;
+    }
+
+    .sock-card.blocked{
+      pointer-events:none;
+    }
+
+    .sock-card.blocked .sock-face::after{
+      content:"🌀";
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      font-size:2rem;
+      background:rgba(255,255,255,.35);
+      backdrop-filter: blur(3px);
+    }
+
+    .floating{
+      position:absolute;
+      pointer-events:none;
+      font-size:1.4rem;
+      animation:floatUp .9s ease forwards;
+      z-index:10;
+      filter: drop-shadow(0 3px 8px rgba(0,0,0,.15));
+    }
+
+    .falling-sock{
+      position:absolute;
+      top:-10%;
+      font-size:2rem;
+      z-index:7;
+      pointer-events:none;
+      animation:fall linear forwards;
+      opacity:.8;
+    }
+
+    .mudge{
+      position:absolute;
+      inset:auto;
+      width:82px;
+      height:82px;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.5), rgba(255,255,255,0) 35%),
+        radial-gradient(circle at 55% 58%, rgba(70,50,25,.16), rgba(40,20,5,.45) 50%, rgba(0,0,0,.55) 75%);
+      filter: blur(2px);
+      opacity:.55;
+      pointer-events:none;
+      z-index:6;
+      animation:smudgeIn .2s ease;
+    }
+
+    .message-panel{
+      background:var(--card);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.7);
+      box-shadow:var(--shadow);
+      border-radius:28px;
+      padding:16px;
+      display:grid;
+      gap:10px;
+    }
+
+    .tips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .tip{
+      background:white;
+      padding:9px 12px;
+      border-radius:999px;
+      font-size:.9rem;
+      font-weight:700;
+      box-shadow:0 6px 14px rgba(55,44,88,.08);
+    }
+
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:rgba(16,13,26,.42);
+      backdrop-filter: blur(8px);
+      z-index:25;
+      padding:20px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s ease;
+    }
+
+    .overlay.show{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .modal{
+      width:min(94vw, 620px);
+      background:linear-gradient(180deg, #ffffff, #fff8fc);
+      border-radius:32px;
+      padding:22px;
+      box-shadow:0 30px 60px rgba(31,24,52,.25);
+      border:1px solid rgba(255,255,255,.95);
+      text-align:center;
+    }
+
+    .modal h2{
+      margin:0 0 8px;
+      font-size:clamp(1.5rem, 5vw, 2.4rem);
+      line-height:1;
+    }
+
+    .big-score{
+      font-size:clamp(2.4rem, 10vw, 4rem);
+      font-weight:1000;
+      margin:10px 0 12px;
+      color:var(--accent);
+    }
+
+    .medals{
+      display:flex;
+      justify-content:center;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:12px 0 18px;
+    }
+
+    .medal{
+      padding:9px 12px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:0 8px 18px rgba(55,44,88,.08);
+      font-weight:900;
+    }
+
+    .footer-actions{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .tiny{
+      font-size:.9rem;
+      opacity:.74;
+    }
+
+    @keyframes bounce{
+      0%{ transform:scale(.8) rotate(-7deg); }
+      55%{ transform:scale(1.12) rotate(4deg); }
+      100%{ transform:scale(1) rotate(0); }
+    }
+
+    @keyframes matchedPop{
+      0%{ transform:scale(.85) rotate(-8deg); }
+      60%{ transform:scale(1.16) rotate(4deg); }
+      100%{ transform:scale(1) rotate(0); }
+    }
+
+    @keyframes floatUp{
+      0%{ opacity:0; transform:translateY(8px) scale(.7); }
+      18%{ opacity:1; }
+      100%{ opacity:0; transform:translateY(-42px) scale(1.15); }
+    }
+
+    @keyframes fall{
+      0%{ transform:translateY(-10vh) rotate(0deg); opacity:0; }
+      10%{ opacity:.9; }
+      100%{ transform:translateY(118vh) rotate(280deg); opacity:.1; }
+    }
+
+    @keyframes smudgeIn{
+      from{ transform:scale(.5); opacity:0; }
+      to{ transform:scale(1); opacity:.55; }
+    }
+
+    @media (max-width: 760px){
+      .topbar{
+        grid-template-columns:1fr;
+      }
+      .controls{
+        justify-content:stretch;
+      }
+      .controls button{
+        flex:1 1 auto;
+      }
+      .hud{
+        grid-template-columns: repeat(2, minmax(0,1fr));
+      }
+      .hud .pill:last-child{
+        grid-column:1 / -1;
+      }
+      .board{
+        grid-template-columns: repeat(4, minmax(0,1fr));
+        gap:10px;
+      }
+      .board-shell{
+        min-height:unset;
+      }
+    }
+
+    @media (max-width: 430px){
+      .board{
+        gap:8px;
+      }
+      .sock-face{
+        border-radius:18px;
+      }
+      .sock-name{
+        font-size:.68rem;
+      }
+      .value{
+        font-size:1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="titlebox">
+        <h1>Sock Matcher Supreme</h1>
+        <div class="subtitle">Match ridiculous socks before time runs out while chaos keeps ruining your day.</div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">▶ Start</button>
+        <button id="restartBtn" class="secondary">↻ Restart</button>
+        <button id="muteBtn" class="ghost">🔊 Sound</button>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="pill">
+        <span class="label">Time</span>
+        <div class="value" id="timeLabel">60s</div>
+        <div class="progress-shell"><div class="progress-bar" id="timeBar"></div></div>
+      </div>
+      <div class="pill">
+        <span class="label">Score</span>
+        <div class="value" id="scoreLabel">0</div>
+      </div>
+      <div class="pill">
+        <span class="label">Pairs</span>
+        <div class="value" id="pairsLabel">0 / 8</div>
+      </div>
+      <div class="pill">
+        <span class="label">Combo</span>
+        <div class="value" id="comboLabel">x1</div>
+      </div>
+      <div class="pill">
+        <span class="label">Chaos Level</span>
+        <div class="value" id="chaosLabel">Mildly cursed</div>
+      </div>
+    </div>
+
+    <div class="event-banner" id="eventBanner">Laundry goblin incoming</div>
+
+    <div class="play-area">
+      <div class="board-shell">
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="message-panel">
+        <div><strong>How to play:</strong> flip two socks to match the same ridiculous pair. Match fast for combo points. Random silly events will interrupt you.</div>
+        <div class="tips">
+          <div class="tip">⚡ Fast matches build combo</div>
+          <div class="tip">🧦 Events change every few seconds</div>
+          <div class="tip">✨ Perfect run = huge glory</div>
+          <div class="tip">📱 Works on phone and desktop</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2 id="endTitle">Round Over</h2>
+      <div class="tiny" id="endSubtitle">The dryer has spoken.</div>
+      <div class="big-score" id="finalScore">0</div>
+      <div class="medals" id="medals"></div>
+      <div class="footer-actions">
+        <button id="playAgainBtn">Play Again</button>
+        <button id="closeModalBtn" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sockDesigns = [
+      { id:"rocket", emoji:"🧦", name:"Rocket Sock", pattern:"🚀" },
+      { id:"pizza", emoji:"🧦", name:"Pizza Sock", pattern:"🍕" },
+      { id:"duck", emoji:"🧦", name:"Duck Sock", pattern:"🦆" },
+      { id:"alien", emoji:"🧦", name:"Alien Sock", pattern:"👽" },
+      { id:"frog", emoji:"🧦", name:"Frog Sock", pattern:"🐸" },
+      { id:"ghost", emoji:"🧦", name:"Ghost Sock", pattern:"👻" },
+      { id:"banana", emoji:"🧦", name:"Banana Sock", pattern:"🍌" },
+      { id:"crown", emoji:"🧦", name:"Royal Sock", pattern:"👑" }
+    ];
+
+    const board = document.getElementById("board");
+    const timeLabel = document.getElementById("timeLabel");
+    const timeBar = document.getElementById("timeBar");
+    const scoreLabel = document.getElementById("scoreLabel");
+    const pairsLabel = document.getElementById("pairsLabel");
+    const comboLabel = document.getElementById("comboLabel");
+    const chaosLabel = document.getElementById("chaosLabel");
+    const eventBanner = document.getElementById("eventBanner");
+    const overlay = document.getElementById("overlay");
+    const finalScore = document.getElementById("finalScore");
+    const medalsEl = document.getElementById("medals");
+    const endTitle = document.getElementById("endTitle");
+    const endSubtitle = document.getElementById("endSubtitle");
+
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const muteBtn = document.getElementById("muteBtn");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+
+    let deck = [];
+    let firstPick = null;
+    let secondPick = null;
+    let lockBoard = false;
+    let matchedPairs = 0;
+    let score = 0;
+    let combo = 1;
+    let bestCombo = 1;
+    let timeLeft = 60;
+    let totalTime = 60;
+    let gameActive = false;
+    let timer = null;
+    let eventTimer = null;
+    let lastMatchTime = 0;
+    let muted = false;
+    let userInteracted = false;
+    let currentEvent = null;
+    let chaosScore = 0;
+    let mistakes = 0;
+    let perfectRun = true;
+    let audioCtx = null;
+
+    const CHAOS_TEXT = [
+      "Mildly cursed",
+      "Oddly wobbly",
+      "Goblin laundry",
+      "Maximum nonsense",
+      "Utter sockpocalypse"
+    ];
+
+    startBtn.addEventListener("click", startGame);
+    restartBtn.addEventListener("click", restartGame);
+    playAgainBtn.addEventListener("click", restartGame);
+    closeModalBtn.addEventListener("click", () => overlay.classList.remove("show"));
+    muteBtn.addEventListener("click", toggleMute);
+
+    ["pointerdown","touchstart","mousedown","keydown"].forEach(evt=>{
+      window.addEventListener(evt, unlockAudio, { once:true, passive:true });
+    });
+
+    function unlockAudio(){
+      userInteracted = true;
+      if (!audioCtx) {
+        try{
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }catch(e){}
+      }
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    }
+
+    function toggleMute(){
+      muted = !muted;
+      muteBtn.textContent = muted ? "🔇 Muted" : "🔊 Sound";
+    }
+
+    function playTone(type="flip"){
+      if (muted || !userInteracted) return;
+      try{
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        filter.type = "lowpass";
+        filter.frequency.value = 1600;
+
+        if (type === "flip") {
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(480, now);
+          osc.frequency.exponentialRampToValueAtTime(660, now + 0.07);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.04, now + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+          osc.start(now);
+          osc.stop(now + 0.11);
+        } else if (type === "match") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.setValueAtTime(660, now + 0.06);
+          osc.frequency.setValueAtTime(820, now + 0.12);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.07, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === "bad") {
+          osc.type = "square";
+          osc.frequency.setValueAtTime(260, now);
+          osc.frequency.exponentialRampToValueAtTime(160, now + 0.16);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.05, now + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.19);
+        } else if (type === "event") {
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.setValueAtTime(420, now + 0.04);
+          osc.frequency.setValueAtTime(240, now + 0.12);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.045, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+          osc.start(now);
+          osc.stop(now + 0.17);
+        } else if (type === "win") {
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(660, now);
+          osc.frequency.setValueAtTime(880, now + 0.08);
+          osc.frequency.setValueAtTime(1040, now + 0.16);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.07, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.29);
+        }
+      } catch(e){}
+    }
+
+    function shuffle(array){
+      const arr = [...array];
+      for(let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function makeDeck(){
+      const paired = sockDesigns.flatMap(sock => [
+        { ...sock, uid: cryptoRandomId() },
+        { ...sock, uid: cryptoRandomId() }
+      ]);
+      return shuffle(paired);
+    }
+
+    function cryptoRandomId(){
+      return Math.random().toString(36).slice(2, 10);
+    }
+
+    function renderBoard(){
+      board.innerHTML = "";
+      deck.forEach((sock, index) => {
+        const btn = document.createElement("button");
+        btn.className = "sock-card";
+        btn.dataset.id = sock.id;
+        btn.dataset.uid = sock.uid;
+        btn.dataset.index = index;
+        btn.setAttribute("aria-label", "Hidden sock card");
+
+        btn.innerHTML = `
+          <div class="sock-inner">
+            <div class="sock-face sock-back">
+              <div class="back-mark">🧺</div>
+            </div>
+            <div class="sock-face sock-front">
+              <div class="sock-emoji">${sock.pattern}</div>
+              <div class="sock-name">${sock.name}</div>
+            </div>
+          </div>
+        `;
+
+        btn.addEventListener("click", () => onCardClick(btn));
+        board.appendChild(btn);
+      });
+    }
+
+    function updateHud(){
+      timeLabel.textContent = `${Math.max(0, Math.ceil(timeLeft))}s`;
+      scoreLabel.textContent = score;
+      pairsLabel.textContent = `${matchedPairs} / ${sockDesigns.length}`;
+      comboLabel.textContent = `x${combo}`;
+      const ratio = Math.max(0, timeLeft / totalTime) * 100;
+      timeBar.style.width = `${ratio}%`;
+
+      const idx = Math.min(CHAOS_TEXT.length - 1, Math.floor(chaosScore / 2));
+      chaosLabel.textContent = CHAOS_TEXT[idx];
+    }
+
+    function resetRoundState(){
+      firstPick = null;
+      secondPick = null;
+      lockBoard = false;
+      matchedPairs = 0;
+      score = 0;
+      combo = 1;
+      bestCombo = 1;
+      timeLeft = totalTime;
+      chaosScore = 0;
+      currentEvent = null;
+      mistakes = 0;
+      perfectRun = true;
+      clearVisualEvents();
+      updateHud();
+    }
+
+    function startGame(){
+      overlay.classList.remove("show");
+      totalTime = 60;
+      gameActive = true;
+      deck = makeDeck();
+      resetRoundState();
+      renderBoard();
+
+      startBtn.textContent = "⏸ Running";
+      clearInterval(timer);
+      clearInterval(eventTimer);
+
+      timer = setInterval(() => {
+        timeLeft -= 0.1;
+        if (timeLeft <= 0){
+          timeLeft = 0;
+          updateHud();
+          endGame(false);
+          return;
+        }
+        updateHud();
+      }, 100);
+
+      scheduleEvents();
+      showBanner("Ready... set... sort laundry!", 1200);
+      peekPreview();
+    }
+
+    function restartGame(){
+      startGame();
+    }
+
+    function endGame(won){
+      gameActive = false;
+      clearInterval(timer);
+      clearInterval(eventTimer);
+      clearVisualEvents();
+      startBtn.textContent = "▶ Start";
+
+      if (won) {
+        playTone("win");
+      } else {
+        playTone("bad");
+      }
+
+      const bonus = Math.max(0, Math.floor(timeLeft * 10));
+      if (won) score += bonus;
+
+      finalScore.textContent = score;
+      endTitle.textContent = won ? "Sock legend!" : "Laundry defeated you";
+      endSubtitle.textContent = won
+        ? `You matched every pair with ${Math.ceil(timeLeft)}s left. Time bonus: +${bonus}`
+        : `You matched ${matchedPairs} of ${sockDesigns.length} pairs before the timer exploded.`;
+
+      medalsEl.innerHTML = "";
+      const medals = getMedals(won);
+      medals.forEach(m => {
+        const div = document.createElement("div");
+        div.className = "medal";
+        div.textContent = m;
+        medalsEl.appendChild(div);
+      });
+
+      overlay.classList.add("show");
+    }
+
+    function getMedals(won){
+      const list = [];
+      if (won) list.push("🏆 Sock Champion");
+      if (perfectRun && matchedPairs > 0) list.push("✨ No Oopsies");
+      if (bestCombo >= 4) list.push("⚡ Combo Fiend");
+      if (mistakes >= 5) list.push("🌀 Chaos Survivor");
+      if (timeLeft >= 20 && won) list.push("🚀 Speed Folder");
+      if (chaosScore >= 5) list.push("🧺 Laundry Goblin Certified");
+      if (list.length === 0) list.push("🧦 Participation Sock");
+      return list;
+    }
+
+    function onCardClick(card){
+      if (!gameActive || lockBoard || card.classList.contains("flipped") || card.classList.contains("matched") || card.classList.contains("blocked")) return;
+
+      playTone("flip");
+      flipCard(card);
+
+      if (!firstPick){
+        firstPick = card;
+        return;
+      }
+
+      secondPick = card;
+      lockBoard = true;
+
+      const isMatch = firstPick.dataset.id === secondPick.dataset.id && firstPick.dataset.uid !== secondPick.dataset.uid;
+
+      if (isMatch){
+        handleMatch();
+      } else {
+        handleMismatch();
+      }
+    }
+
+    function flipCard(card){
+      card.classList.add("flipped");
+    }
+
+    function unflipCard(card){
+      card.classList.remove("flipped");
+    }
+
+    function handleMatch(){
+      const now = performance.now();
+      const quick = lastMatchTime && (now - lastMatchTime < 2600);
+      combo = quick ? combo + 1 : Math.max(1, combo);
+      bestCombo = Math.max(bestCombo, combo);
+      lastMatchTime = now;
+
+      const base = 100;
+      const comboBonus = (combo - 1) * 35;
+      const timeBonus = Math.ceil(timeLeft) > 20 ? 20 : 0;
+      score += base + comboBonus + timeBonus;
+      matchedPairs += 1;
+
+      [firstPick, secondPick].forEach(card => {
+        card.classList.add("matched");
+        card.disabled = true;
+      });
+
+      burst(firstPick, "✨");
+      burst(secondPick, combo >= 3 ? "⚡" : "🧦");
+      playTone("match");
+
+      firstPick = null;
+      secondPick = null;
+      lockBoard = false;
+      updateHud();
+
+      if (matchedPairs === sockDesigns.length){
+        endGame(true);
+      }
+    }
+
+    function handleMismatch(){
+      perfectRun = false;
+      mistakes += 1;
+      combo = 1;
+      score = Math.max(0, score - 25);
+      updateHud();
+      playTone("bad");
+      burst(firstPick, "💨");
+      burst(secondPick, "😵");
+
+      setTimeout(() => {
+        unflipCard(firstPick);
+        unflipCard(secondPick);
+        firstPick = null;
+        secondPick = null;
+        lockBoard = false;
+      }, 700);
+    }
+
+    function burst(card, emoji){
+      const rect = card.getBoundingClientRect();
+      const span = document.createElement("div");
+      span.className = "floating";
+      span.textContent = emoji;
+      span.style.left = `${rect.left + rect.width/2}px`;
+      span.style.top = `${window.scrollY + rect.top + rect.height/2}px`;
+      document.body.appendChild(span);
+      setTimeout(() => span.remove(), 900);
+    }
+
+    function showBanner(text, ms=1400){
+      eventBanner.textContent = text;
+      eventBanner.classList.add("show");
+      clearTimeout(showBanner._t);
+      showBanner._t = setTimeout(() => eventBanner.classList.remove("show"), ms);
+    }
+
+    function scheduleEvents(){
+      triggerRandomEvent();
+      eventTimer = setInterval(() => {
+        if (!gameActive) return;
+        triggerRandomEvent();
+      }, 6500);
+    }
+
+    function triggerRandomEvent(){
+      clearVisualEvents();
+      chaosScore += 1;
+      updateHud();
+
+      const events = [
+        eventShuffle,
+        eventLightsOut,
+        eventFreezeOne,
+        eventSockRain,
+        eventBlurVision,
+        eventSmudges,
+        eventWobbleBoard,
+        eventPeekaboo
+      ];
+      const pick = events[Math.floor(Math.random() * events.length)];
+      currentEvent = pick.name;
+      pick();
+      playTone("event");
+    }
+
+    function clearVisualEvents(){
+      document.body.classList.remove("event-lightsout", "event-blur");
+      board.style.setProperty("--board-rotate", "0deg");
+      board.style.setProperty("--board-scale", "1");
+      [...document.querySelectorAll(".mudge, .falling-sock")].forEach(el => el.remove());
+      [...document.querySelectorAll(".sock-card.blocked")].forEach(el => el.classList.remove("blocked"));
+    }
+
+    function eventShuffle(){
+      showBanner("🌀 Laundry tornado! Socks shuffled.", 1600);
+
+      const cards = [...board.children];
+      const states = cards.map(card => ({
+        id: card.dataset.id,
+        uid: card.dataset.uid,
+        flipped: card.classList.contains("flipped"),
+        matched: card.classList.contains("matched"),
+        blocked: card.classList.contains("blocked")
+      }));
+
+      const unmatchedDeck = [];
+      const matchedDeck = [];
+
+      deck.forEach(item => {
+        const node = [...board.children].find(c => c.dataset.uid === item.uid);
+        if (node && node.classList.contains("matched")) matchedDeck.push(item);
+        else unmatchedDeck.push(item);
+      });
+
+      deck = shuffle(unmatchedDeck).concat(matchedDeck);
+      renderBoard();
+
+      [...board.children].forEach(card => {
+        const state = states.find(s => s.uid === card.dataset.uid);
+        if (!state) return;
+        if (state.flipped) card.classList.add("flipped");
+        if (state.matched) {
+          card.classList.add("matched");
+          card.disabled = true;
+        }
+      });
+
+      if (firstPick || secondPick){
+        firstPick = null;
+        secondPick = null;
+        lockBoard = false;
+      }
+    }
+
+    function eventLightsOut(){
+      showBanner("💡 Power flicker! Everything got mood lighting.", 1700);
+      document.body.classList.add("event-lightsout");
+      setTimeout(() => document.body.classList.remove("event-lightsout"), 2300);
+    }
+
+    function eventFreezeOne(){
+      const available = [...board.children].filter(c =>
+        !c.classList.contains("matched") &&
+        !c.classList.contains("flipped")
+      );
+      if (!available.length) return eventPeekaboo();
+
+      const target = available[Math.floor(Math.random() * available.length)];
+      target.classList.add("blocked");
+      showBanner("🧊 Static cling! One sock is temporarily cursed.", 1600);
+      setTimeout(() => target.classList.remove("blocked"), 2200);
+    }
+
+    function eventSockRain(){
+      showBanner("🌧️ Sock rain! Very unhelpful.", 1500);
+      const count = 12;
+      for(let i=0;i<count;i++){
+        const el = document.createElement("div");
+        el.className = "falling-sock";
+        el.textContent = ["🧦","🧺","🧼"][Math.floor(Math.random()*3)];
+        el.style.left = `${Math.random()*100}%`;
+        el.style.animationDuration = `${2 + Math.random()*2.4}s`;
+        el.style.fontSize = `${1.4 + Math.random()*1.2}rem`;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 5000);
+      }
+    }
+
+    function eventBlurVision(){
+      showBanner("😵 Fuzzy laundry vision.", 1500);
+      document.body.classList.add("event-blur");
+      setTimeout(() => document.body.classList.remove("event-blur"), 2200);
+    }
+
+    function eventSmudges(){
+      showBanner("🫧 Soap smudges on the screen!", 1600);
+      const shell = document.querySelector(".board-shell");
+      const count = 4;
+      for(let i=0;i<count;i++){
+        const s = document.createElement("div");
+        s.className = "mudge";
+        s.style.left = `${8 + Math.random()*78}%`;
+        s.style.top = `${8 + Math.random()*72}%`;
+        shell.appendChild(s);
+        setTimeout(() => s.remove(), 2400);
+      }
+    }
+
+    function eventWobbleBoard(){
+      showBanner("🎢 Wobble mode engaged.", 1500);
+      board.style.setProperty("--board-rotate", `${(Math.random() > .5 ? 1 : -1) * 2.5}deg`);
+      board.style.setProperty("--board-scale", "0.985");
+      setTimeout(() => {
+        board.style.setProperty("--board-rotate", "0deg");
+        board.style.setProperty("--board-scale", "1");
+      }, 1800);
+    }
+
+    function eventPeekaboo(){
+      const hiddenCandidates = [...board.children].filter(c =>
+        !c.classList.contains("matched") &&
+        !c.classList.contains("flipped")
+      );
+      if (!hiddenCandidates.length) return;
+
+      const sample = shuffle(hiddenCandidates).slice(0, Math.min(3, hiddenCandidates.length));
+      showBanner("👀 Peekaboo! A few socks reveal themselves.", 1500);
+      sample.forEach(c => c.classList.add("flipped"));
+      setTimeout(() => {
+        sample.forEach(c => {
+          if (!c.classList.contains("matched")) c.classList.remove("flipped");
+        });
+      }, 900);
+    }
+
+    function peekPreview(){
+      const cards = [...board.children];
+      cards.forEach((c, i) => setTimeout(() => c.classList.add("flipped"), i * 35));
+      setTimeout(() => {
+        cards.forEach((c, i) => setTimeout(() => c.classList.remove("flipped"), i * 22));
+      }, 1200);
+    }
+
+    renderBoard();
+    updateHud();
+  </script>
+</body>
+</html>
