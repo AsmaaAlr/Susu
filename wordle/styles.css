@@ -358,13 +358,22 @@ input {
   }
 
   .key {
-    min-width: 38px;
-    min-height: 48px;
-    padding: 0 10px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 6px;
     border-radius: 14px;
+    font-size: 0.95rem;
   }
 
   .key.special {
-    min-width: 72px;
+    min-width: 0;
+  }
+
+  .keyboard-row {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: 6px;
+    direction: ltr;
+    width: 100%;
   }
 }

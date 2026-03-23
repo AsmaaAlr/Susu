@@ -279,6 +279,7 @@ function renderKeyboard() {
   rowsWithPlaceholder.forEach((rowValues) => {
     const row = document.createElement("div");
     row.className = "keyboard-row";
+    row.style.setProperty("--cols", String(rowValues.length));
 
     rowValues.forEach((rawKey) => {
       const keyButton = document.createElement("button");
