@@ -17,11 +17,11 @@
           <h1 id="app-title">كلمة اليوم</h1>
         </div>
         <div class="hero-actions">
-          <button id="share-button" class="secondary-button" type="button">
-            مشاركة النتيجة
+          <button id="hint-button" class="ghost-button" type="button">
+            تلميح (2)
           </button>
-          <button id="reset-button" class="ghost-button" type="button">
-            إعادة الجولة
+          <button id="reset-button" class="ghost-button icon-button" type="button" aria-label="جولة جديدة" title="جولة جديدة">
+            ↻
           </button>
         </div>
       </header>
@@ -36,6 +36,8 @@
 
       <main class="game-layout">
         <section class="panel board-panel" aria-label="لوحة اللعبة">
+          <p id="hint-display" class="hint-display"></p>
+          <div id="result-banner" class="result-banner" role="status" aria-live="polite"></div>
           <div id="board" class="board" aria-live="polite"></div>
           <div id="toast" class="toast" role="status" aria-live="polite"></div>
         </section>
@@ -46,6 +48,7 @@
       </section>
     </div>
 
-    <script type="module" src="./app.js"></script>
+    <script src="./word-data.js"></script>
+    <script src="./app.js"></script>
   </body>
 </html>

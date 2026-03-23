@@ -50,6 +50,7 @@ input {
 
 .hero-copy {
   flex: 1;
+  text-align: right;
 }
 
 .hero h1 {
@@ -118,6 +119,17 @@ input {
   box-shadow: var(--shadow);
 }
 
+.icon-button {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
 .secondary-button {
   background: var(--text);
   color: #fffaf1;
@@ -132,6 +144,12 @@ input {
 .ghost-button:hover,
 .key:hover {
   transform: translateY(-1px);
+}
+
+.ghost-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .game-layout {
@@ -156,6 +174,39 @@ input {
   min-height: 520px;
   width: min(100%, 520px);
   margin: 0 auto;
+}
+
+.hint-display {
+  min-height: 32px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  text-align: center;
+  font-weight: 600;
+}
+
+.result-banner {
+  display: none;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  text-align: center;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.result-banner.show {
+  display: block;
+}
+
+.result-banner.win {
+  background: rgba(62, 123, 79, 0.16);
+  color: #245332;
+}
+
+.result-banner.lose {
+  background: rgba(199, 139, 42, 0.2);
+  color: #6a4107;
 }
 
 .board {
@@ -184,6 +235,21 @@ input {
 
 .tile.filled {
   border-color: #a98f80;
+}
+
+.tile.placeholder-tile {
+  background: rgba(62, 40, 26, 0.12);
+  border-color: rgba(62, 40, 26, 0.22);
+  color: transparent;
+}
+
+.tile.selectable-placeholder {
+  cursor: pointer;
+}
+
+.tile.selected-placeholder {
+  outline: 2px solid rgba(62, 40, 26, 0.44);
+  outline-offset: 1px;
 }
 
 .tile.correct,
@@ -239,6 +305,13 @@ input {
   min-width: 86px;
 }
 
+.key.placeholder {
+  background: rgba(62, 40, 26, 0.06);
+  color: rgba(62, 40, 26, 0.38);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
 .toast {
   position: absolute;
   inset-inline: 20px;
@@ -261,10 +334,6 @@ input {
 }
 
 @media (max-width: 920px) {
-  .hero {
-    flex-direction: column;
-  }
-
   .board-panel {
     min-height: 420px;
   }

@@ -1,15 +1,44 @@
-const DATA_PATHS = {
-  config: "./config/game-config-ar.json",
-  keyboard: "./config/keyboard-layout-ar.json",
-  answers: "./data/answers-ar.json",
-  allowedGuesses: "./data/allowed-guesses-ar.json",
-};
-
 const STATUS_PRIORITY = {
   empty: 0,
   absent: 1,
   present: 2,
   correct: 3,
+};
+
+const ENGLISH_TO_ARABIC_KEY_MAP = {
+  q: "ض",
+  w: "ص",
+  e: "ث",
+  r: "ق",
+  t: "ف",
+  y: "غ",
+  u: "ع",
+  i: "ه",
+  o: "خ",
+  p: "ح",
+  "[": "ج",
+  "]": "د",
+  a: "ش",
+  s: "س",
+  d: "ي",
+  f: "ب",
+  g: "ل",
+  h: "ا",
+  j: "ت",
+  k: "ن",
+  l: "م",
+  ";": "ك",
+  "'": "ط",
+  z: "ئ",
+  x: "X",
+  c: "ؤ",
+  v: "ر",
+  b: "لا",
+  n: "ى",
+  m: "ة",
+  ",": "و",
+  ".": "ز",
+  "/": "ظ",
 };
 
 const state = {
@@ -24,17 +53,23 @@ const state = {
   wordLength: 0,
   attempts: [],
   currentGuess: "",
+  selectedPlaceholderIndex: null,
   keyboardState: {},
   maxAttempts: 6,
   finished: false,
+  hintsUsed: 0,
+  maxHints: 2,
+  revealedHints: [],
 };
 
 const elements = {
   title: document.querySelector("#app-title"),
+  hintDisplay: document.querySelector("#hint-display"),
+  resultBanner: document.querySelector("#result-banner"),
   board: document.querySelector("#board"),
   keyboard: document.querySelector("#keyboard"),
   toast: document.querySelector("#toast"),
-  shareButton: document.querySelector("#share-button"),
+  hintButton: document.querySelector("#hint-button"),
   resetButton: document.querySelector("#reset-button"),
 };
 
@@ -44,12 +79,15 @@ init().catch((error) => {
 });
 
 async function init() {
-  const [configData, keyboardData, answersData, allowedData] = await Promise.all([
-    fetchJson(DATA_PATHS.config),
-    fetchJson(DATA_PATHS.keyboard),
-    fetchJson(DATA_PATHS.answers),
-    fetchJson(DATA_PATHS.allowedGuesses),
-  ]);
+  const embeddedData = window.WORDL_DATA;
+  if (!embeddedData) {
+    throw new Error("WORDL_DATA is missing");
+  }
+
+  const configData = embeddedData.config ?? {};
+  const keyboardData = embeddedData.keyboard ?? {};
+  const answersData = embeddedData.answers ?? {};
+  const allowedData = embeddedData.allowedGuesses ?? {};
 
   state.config = configData;
   state.keyboardRows = keyboardData.rows ?? [];
@@ -73,15 +111,9 @@ async function init() {
   renderStaticInfo();
   renderBoard();
   renderKeyboard();
+  renderHints();
+  renderResultBanner();
   bindEvents();
-}
-
-async function fetchJson(path) {
-  const response = await fetch(path, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${path}: ${response.status}`);
-  }
-  return response.json();
 }
 
 function sanitizeWords(words) {
@@ -150,8 +182,12 @@ function hydrateSavedState() {
 
     state.attempts = saved.attempts.filter(isValidSavedAttempt);
     state.currentGuess = Array.from(saved.currentGuess).slice(0, state.wordLength).join("");
+    state.selectedPlaceholderIndex =
+      Number.isInteger(saved.selectedPlaceholderIndex) ? saved.selectedPlaceholderIndex : null;
     state.keyboardState = saved.keyboardState && typeof saved.keyboardState === "object" ? saved.keyboardState : {};
     state.finished = Boolean(saved.finished);
+    state.hintsUsed = Number.isInteger(saved.hintsUsed) ? Math.min(saved.hintsUsed, state.maxHints) : 0;
+    state.revealedHints = Array.isArray(saved.revealedHints) ? saved.revealedHints.filter((item) => typeof item === "string") : [];
   } catch (error) {
     console.warn("Ignoring invalid saved state", error);
   }
@@ -170,8 +206,11 @@ function persistState() {
   const snapshot = {
     attempts: state.attempts,
     currentGuess: state.currentGuess,
+    selectedPlaceholderIndex: state.selectedPlaceholderIndex,
     keyboardState: state.keyboardState,
     finished: state.finished,
+    hintsUsed: state.hintsUsed,
+    revealedHints: state.revealedHints,
   };
   localStorage.setItem(storageKey(), JSON.stringify(snapshot));
 }
@@ -203,11 +242,23 @@ function renderBoard() {
 
     for (let colIndex = 0; colIndex < state.wordLength; colIndex += 1) {
       const tile = document.createElement("div");
+      const rawLetter = letters[colIndex] ?? "";
+      const displayLetter = rawLetter === "X" ? "" : rawLetter;
       tile.className = "tile";
-      tile.textContent = letters[colIndex] ?? "";
+      tile.textContent = displayLetter;
 
-      if (letters[colIndex]) {
+      if (rawLetter) {
         tile.classList.add("filled");
+      }
+      if (rawLetter === "X") {
+        tile.classList.add("placeholder-tile");
+        if (rowIndex === state.attempts.length && !state.finished) {
+          tile.classList.add("selectable-placeholder");
+          tile.dataset.placeholderIndex = String(colIndex);
+          if (state.selectedPlaceholderIndex === colIndex) {
+            tile.classList.add("selected-placeholder");
+          }
+        }
       }
 
       if (statuses[colIndex]) {
@@ -224,7 +275,8 @@ function renderBoard() {
 function renderKeyboard() {
   elements.keyboard.textContent = "";
 
-  state.keyboardRows.forEach((rowValues) => {
+  const rowsWithPlaceholder = [...state.keyboardRows, ["X"]];
+  rowsWithPlaceholder.forEach((rowValues) => {
     const row = document.createElement("div");
     row.className = "keyboard-row";
 
@@ -233,10 +285,14 @@ function renderKeyboard() {
       keyButton.type = "button";
       keyButton.className = "key";
       keyButton.dataset.key = rawKey;
-      keyButton.textContent = rawKey === "ENTER" ? "إدخال" : rawKey === "⌫" ? "حذف" : rawKey;
+      keyButton.textContent =
+        rawKey === "ENTER" ? "إدخال" : rawKey === "⌫" ? "حذف" : rawKey === "X" ? "X" : rawKey;
 
       if (rawKey === "ENTER" || rawKey === "⌫") {
         keyButton.classList.add("special");
+      }
+      if (rawKey === "X") {
+        keyButton.classList.add("placeholder");
       }
 
       const status = state.keyboardState[rawKey];
@@ -253,9 +309,26 @@ function renderKeyboard() {
 
 function bindEvents() {
   document.addEventListener("keydown", handlePhysicalKeyboard);
+  elements.board.addEventListener("click", handleBoardClick);
   elements.keyboard.addEventListener("click", handleKeyboardClick);
+  elements.hintButton.addEventListener("click", revealHint);
   elements.resetButton.addEventListener("click", resetRound);
-  elements.shareButton.addEventListener("click", shareResult);
+}
+
+function handleBoardClick(event) {
+  const tile = event.target.closest(".tile.selectable-placeholder");
+  if (!tile || state.finished) {
+    return;
+  }
+
+  const index = Number(tile.dataset.placeholderIndex);
+  if (!Number.isInteger(index)) {
+    return;
+  }
+
+  state.selectedPlaceholderIndex = index;
+  renderBoard();
+  persistState();
 }
 
 function handleKeyboardClick(event) {
@@ -297,6 +370,12 @@ function handlePhysicalKeyboard(event) {
     return;
   }
 
+  if (event.key === "x" || event.key === "X") {
+    event.preventDefault();
+    addLetter("X");
+    return;
+  }
+
   const mapped = normalizeKeyboardInput(event.key);
   if (!mapped) {
     return;
@@ -312,6 +391,11 @@ function normalizeKeyboardInput(value) {
     return "";
   }
 
+  const mappedFromEnglish = ENGLISH_TO_ARABIC_KEY_MAP[trimmed.toLowerCase()];
+  if (mappedFromEnglish) {
+    return mappedFromEnglish;
+  }
+
   if (trimmed === "ﻻ" || trimmed === "لا") {
     return "لا";
   }
@@ -323,6 +407,13 @@ function normalizeKeyboardInput(value) {
 function addLetter(letter) {
   if (state.finished) {
     showToast("انتهت الجولة. يمكنك بدء جولة جديدة.");
+    return;
+  }
+
+  if (state.selectedPlaceholderIndex !== null && letter !== "X" && replaceSelectedPlaceholder(letter)) {
+    state.selectedPlaceholderIndex = null;
+    renderBoard();
+    persistState();
     return;
   }
 
@@ -345,8 +436,28 @@ function removeLetter() {
   const letters = Array.from(state.currentGuess);
   letters.pop();
   state.currentGuess = letters.join("");
+  state.selectedPlaceholderIndex = null;
   renderBoard();
   persistState();
+}
+
+function replaceSelectedPlaceholder(letter) {
+  const letters = Array.from(state.currentGuess);
+  const index = state.selectedPlaceholderIndex;
+  if (!Number.isInteger(index) || index < 0 || index >= letters.length) {
+    return false;
+  }
+  if (letters[index] !== "X") {
+    return false;
+  }
+
+  if (Array.from(letter).length !== 1) {
+    return false;
+  }
+
+  letters[index] = letter;
+  state.currentGuess = letters.join("");
+  return true;
 }
 
 function submitGuess() {
@@ -357,6 +468,10 @@ function submitGuess() {
   const guessLetters = Array.from(state.currentGuess);
   if (guessLetters.length !== state.wordLength) {
     showToast(`أدخل كلمة من ${state.wordLength} أحرف`);
+    return;
+  }
+  if (guessLetters.includes("X")) {
+    showToast("استبدل X بحرف قبل الإرسال");
     return;
   }
 
@@ -370,11 +485,13 @@ function submitGuess() {
   state.attempts.push({ guess: state.currentGuess, evaluation });
   mergeKeyboardState(state.currentGuess, evaluation);
   state.currentGuess = "";
+  state.selectedPlaceholderIndex = null;
   state.finished =
     evaluation.every((item) => item === "correct") || state.attempts.length >= state.maxAttempts;
 
   renderBoard();
   renderKeyboard();
+  renderResultBanner();
   persistState();
 
   if (evaluation.every((item) => item === "correct")) {
@@ -382,6 +499,32 @@ function submitGuess() {
   } else if (state.finished) {
     showToast(`انتهت المحاولات. الكلمة كانت: ${state.answer}`);
   }
+}
+
+function revealHint() {
+  if (state.finished) {
+    showToast("الجولة انتهت. ابدأ جولة جديدة.");
+    return;
+  }
+  if (state.hintsUsed >= state.maxHints) {
+    showToast("استخدمت كل التلميحات");
+    return;
+  }
+
+  const answerLetters = Array.from(new Set(Array.from(state.answer).map((char) => normalizeArabic(char))));
+  const remaining = answerLetters.filter((char) => !state.revealedHints.includes(char));
+  if (!remaining.length) {
+    showToast("لا يوجد تلميحات إضافية");
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * remaining.length);
+  const hint = remaining[randomIndex];
+  state.revealedHints.push(hint);
+  state.hintsUsed += 1;
+  renderHints();
+  persistState();
+  showToast(`تلميح: الحرف ${hint} موجود في الكلمة`);
 }
 
 function isAllowedGuess(guess, normalizedGuess) {
@@ -467,22 +610,32 @@ function normalizeArabic(value) {
 function updateAttemptCounter() {
 }
 
-function formatArabicDate(dateString) {
-  if (!dateString) {
-    return "-";
+function renderHints() {
+  const left = state.maxHints - state.hintsUsed;
+  elements.hintButton.textContent = `تلميح (${left})`;
+  elements.hintButton.disabled = left <= 0 || state.finished;
+
+  if (!state.revealedHints.length) {
+    elements.hintDisplay.textContent = "التلميحات: -";
+    return;
   }
 
-  const parsed = new Date(`${dateString}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) {
-    return dateString;
+  elements.hintDisplay.textContent = `الحروف المكشوفة: ${state.revealedHints.join(" - ")}`;
+}
+
+function renderResultBanner() {
+  elements.resultBanner.classList.remove("show", "win", "lose");
+  elements.resultBanner.textContent = "";
+
+  if (!state.finished) {
+    return;
   }
 
-  return new Intl.DateTimeFormat("ar-KW", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(parsed);
+  const won = state.attempts.at(-1)?.evaluation?.every((item) => item === "correct");
+  elements.resultBanner.classList.add("show", won ? "win" : "lose");
+  elements.resultBanner.textContent = won
+    ? "ممتاز! تم حل الكلمة."
+    : `انتهت المحاولات. الكلمة كانت: ${state.answer}`;
 }
 
 let toastTimer = null;
@@ -502,54 +655,16 @@ function resetRound() {
   applyPuzzle(nextPuzzle);
   state.attempts = [];
   state.currentGuess = "";
+  state.selectedPlaceholderIndex = null;
   state.keyboardState = {};
   state.finished = false;
+  state.hintsUsed = 0;
+  state.revealedHints = [];
   renderBoard();
   renderKeyboard();
+  renderHints();
+  renderResultBanner();
   updateAttemptCounter();
   persistState();
   showToast("بدأت جولة جديدة");
-}
-
-async function shareResult() {
-  if (!state.attempts.length) {
-    showToast("ابدأ جولة أولاً ثم شارك النتيجة");
-    return;
-  }
-
-  const title = state.config?.appName || "كلمة اليوم";
-  const score = state.attempts.at(-1)?.evaluation.every((item) => item === "correct")
-    ? state.attempts.length
-    : "X";
-  const grid = state.attempts
-    .map((attempt) =>
-      attempt.evaluation
-        .map((status) => {
-          if (status === "correct") return "🟩";
-          if (status === "present") return "🟨";
-          return "⬜";
-        })
-        .join("")
-    )
-    .join("\n");
-
-  const text = `${title} ${state.puzzle?.date} ${score}/${state.maxAttempts}\n${grid}`;
-  const header = `${title} ${score}/${state.maxAttempts}`;
-  const textToShare = `${header}\n${grid}`;
-
-  try {
-    if (navigator.share) {
-      await navigator.share({ text: textToShare });
-    } else if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(textToShare);
-      showToast("تم نسخ النتيجة");
-      return;
-    } else {
-      throw new Error("No share support");
-    }
-    showToast("تمت مشاركة النتيجة");
-  } catch (error) {
-    console.warn("Share failed", error);
-    showToast("تعذر مشاركة النتيجة");
-  }
 }
