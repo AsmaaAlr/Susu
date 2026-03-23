@@ -1,0 +1,27 @@
+{
+  "appName": "وردل عربي",
+  "language": "ar",
+  "rtl": true,
+  "wordLength": 5,
+  "maxAttempts": 6,
+  "allowOnlyListedGuesses": true,
+  "normalization": {
+    "removeDiacritics": true,
+    "removeTatweel": true,
+    "normalizeAlef": true,
+    "normalizeYa": true,
+    "normalizeTaMarbuta": false
+  },
+  "multiplayer": {
+    "enabled": true,
+    "transport": "websocket",
+    "localNetworkOnly": true,
+    "hostMustBindAllInterfaces": true,
+    "defaultMode": "shared-board"
+  },
+  "room": {
+    "codeLength": 6,
+    "maxPlayers": 20,
+    "allowViewOnly": true
+  }
+}
