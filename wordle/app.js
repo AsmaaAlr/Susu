@@ -511,9 +511,25 @@ function revealHint() {
   }
 
   const answerLetters = Array.from(new Set(Array.from(state.answer).map((char) => normalizeArabic(char))));
-  const remaining = answerLetters.filter((char) => !state.revealedHints.includes(char));
+  const guessedLetters = new Set();
+  state.attempts.forEach((attempt) => {
+    Array.from(attempt.guess).forEach((char) => {
+      if (char !== "X") {
+        guessedLetters.add(normalizeArabic(char));
+      }
+    });
+  });
+  Array.from(state.currentGuess).forEach((char) => {
+    if (char !== "X") {
+      guessedLetters.add(normalizeArabic(char));
+    }
+  });
+
+  const remaining = answerLetters.filter(
+    (char) => !state.revealedHints.includes(char) && !guessedLetters.has(char),
+  );
   if (!remaining.length) {
-    showToast("لا يوجد تلميحات إضافية");
+    showToast("لا يوجد تلميح جديد غير الحروف التي خمنتها");
     return;
   }
 
