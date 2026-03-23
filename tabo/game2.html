@@ -292,7 +292,14 @@
     </div>
 
     <script type="module">
-      import { tabooConfig, tabooDeck } from "../../data.js";
+      const defaultConfig = {
+        roundSeconds: 60,
+        skipLimit: 3,
+        questionsPerRound: 5,
+      };
+
+      let tabooConfig = { ...defaultConfig };
+      let tabooDeck = [];
 
       const appElement = document.querySelector("#app");
       const restartButton = document.querySelector("#restart-button");
@@ -309,13 +316,13 @@
         currentCard: null,
         activeTeam: 0,
         cardsUsedThisTurn: 0,
-        timeLeft: Number.parseInt(tabooConfig.roundSeconds, 10) || 60,
+        timeLeft: 60,
         timerHandle: null,
         rulesOpen: false,
         settings: {
-          cardsPerRound: Number.parseInt(tabooConfig.questionsPerRound || 5, 10) || 5,
-          skipLimit: Number.parseInt(tabooConfig.skipLimit || 3, 10) || 3,
-          roundSeconds: Number.parseInt(tabooConfig.roundSeconds || 60, 10) || 60,
+          cardsPerRound: 5,
+          skipLimit: 3,
+          roundSeconds: 60,
         },
         teams: [
           { name: "الفريق البنفسجي", score: 0, skipsUsed: 0 },
@@ -323,6 +330,23 @@
         ],
         status: "loading",
       };
+
+      async function loadDataModule() {
+        const candidatePaths = ["./data.js", "../data.js", "../../data.js", "/data.js"];
+        for (const candidate of candidatePaths) {
+          try {
+            const moduleData = await import(candidate);
+            if (Array.isArray(moduleData?.tabooDeck)) {
+              tabooDeck = moduleData.tabooDeck;
+              tabooConfig = { ...defaultConfig, ...(moduleData.tabooConfig || {}) };
+              return;
+            }
+          } catch (error) {
+            // Try next path
+          }
+        }
+        throw new Error("تعذر تحميل data.js. تأكد من رفع data.js مع game2.html");
+      }
 
       function createElement(tag, className, text) {
         const element = document.createElement(tag);
@@ -549,9 +573,22 @@
       });
 
       function boot() {
-        resetDeck();
-        state.status = state.deck.length ? "ready" : "loading";
-        startTurn();
+        loadDataModule()
+          .then(() => {
+            state.settings.cardsPerRound = Number.parseInt(tabooConfig.questionsPerRound || 5, 10) || 5;
+            state.settings.skipLimit = Number.parseInt(tabooConfig.skipLimit || 3, 10) || 3;
+            state.settings.roundSeconds = Number.parseInt(tabooConfig.roundSeconds || 60, 10) || 60;
+            state.timeLeft = state.settings.roundSeconds;
+            resetDeck();
+            state.status = state.deck.length ? "ready" : "loading";
+            startTurn();
+          })
+          .catch(() => {
+            appElement.replaceChildren();
+            const panel = createElement("section", "panel board-panel");
+            panel.append(createElement("p", "", "تعذر تحميل بيانات اللعبة. ارفع data.js بجانب game2.html"));
+            appElement.append(panel);
+          });
       }
 
       boot();
