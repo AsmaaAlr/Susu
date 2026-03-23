@@ -275,8 +275,9 @@ function renderBoard() {
 function renderKeyboard() {
   elements.keyboard.textContent = "";
 
-  const rowsWithPlaceholder = [...state.keyboardRows, ["X"]];
-  rowsWithPlaceholder.forEach((rowValues) => {
+  const letterRows = state.keyboardRows.map((row) => row.filter((key) => key !== "ENTER" && key !== "⌫"));
+  const rowsWithControls = [...letterRows, ["ENTER", "⌫", "X"]];
+  rowsWithControls.forEach((rowValues) => {
     const row = document.createElement("div");
     row.className = "keyboard-row";
     row.style.setProperty("--cols", String(rowValues.length));

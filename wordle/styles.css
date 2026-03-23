@@ -285,11 +285,11 @@ input {
 }
 
 .keyboard-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
   direction: ltr;
-  justify-content: center;
   gap: 8px;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
 .key {
@@ -370,10 +370,6 @@ input {
   }
 
   .keyboard-row {
-    display: grid;
-    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
     gap: 6px;
-    direction: ltr;
-    width: 100%;
   }
 }
