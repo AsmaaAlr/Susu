@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تابو - Taboo Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #475569;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        /* Background Pattern */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--primary) 2px, transparent 2px),
+                radial-gradient(circle at 75% 75%, var(--secondary) 2px, transparent 2px);
+            background-size: 60px 60px;
+            z-index: 0;
+        }
+
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 10;
+            padding: 0.85rem 1.4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            transform: rotate(-5deg);
+        }
+
+        .logo-text {
+            font-size: 2rem;
+            font-weight: 900;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            position: relative;
+        }
+
+        .btn-icon {
+            width: 45px;
+            height: 45px;
+            border: none;
+            border-radius: 12px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .btn-icon:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            background: var(--primary);
+            color: white;
+        }
+
+        .settings-panel {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            left: 0;
+            width: min(320px, 92vw);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 1rem;
+            z-index: 30;
+            display: none;
+        }
+
+        .settings-panel.open {
+            display: block;
+        }
+
+        .settings-title {
+            font-size: 1rem;
+            font-weight: 800;
+            margin-bottom: 0.8rem;
+        }
+
+        .setting-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.8rem;
+            align-items: center;
+            margin-bottom: 0.7rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .setting-item input {
+            width: 90px;
+            padding: 0.4rem 0.6rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .settings-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.8rem;
+        }
+
+        .settings-save {
+            border: none;
+            border-radius: 10px;
+            padding: 0.45rem 0.9rem;
+            background: var(--primary);
+            color: white;
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 5;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 2rem;
+            min-height: calc(100vh - 100px);
+        }
+
+        /* Score Boards */
+        .score-panel {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .team-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+            border-radius: 14px;
+            padding: 0.65rem 0.75rem;
+            margin-bottom: 0.55rem;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .team-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+            transform: scale(1.02);
+        }
+
+        .team-card.team-2 {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%);
+        }
+
+        .team-card.team-2.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+        }
+
+        .team-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .team-name {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .team-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .team-1 .team-badge {
+            background: var(--primary);
+            color: white;
+        }
+
+        .team-2 .team-badge {
+            background: var(--accent);
+            color: white;
+        }
+
+        .score-display {
+            font-size: 1.65rem;
+            font-weight: 900;
+            text-align: center;
+            color: var(--text-primary);
+            margin: 0.1rem 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .score-label {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        /* Game Area */
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        /* Timer */
+        .timer-container {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+        }
+
+        .timer-svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+            filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.3));
+        }
+
+        .timer-bg {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 8;
+        }
+
+        .timer-progress {
+            fill: none;
+            stroke: url(#timerGradient);
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 377;
+            stroke-dashoffset: 100;
+            transition: stroke-dashoffset 1s linear;
+        }
+
+        .timer-text {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            z-index: 2;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Taboo Card */
+        .card-container {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .taboo-card {
+            background: var(--bg-card);
+            border-radius: 32px;
+            padding: 2.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        .taboo-card.team-1 {
+            background: linear-gradient(160deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.11) 55%, rgba(255, 255, 255, 0.92) 100%);
+            border-color: rgba(59, 130, 246, 0.35);
+        }
+
+        .taboo-card.team-2 {
+            background: linear-gradient(160deg, rgba(251, 191, 36, 0.24) 0%, rgba(249, 115, 22, 0.12) 55%, rgba(255, 255, 255, 0.92) 100%);
+            border-color: rgba(245, 158, 11, 0.35);
+        }
+
+        .taboo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: var(--gradient-1);
+        }
+
+        .taboo-card.team-2::before {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-top: 0.2rem;
+        }
+
+        .card-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+        }
+
+        .target-word {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--primary);
+            text-align: center;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(99, 102, 241, 0.2);
+            letter-spacing: -1px;
+        }
+
+        .taboo-card.team-2 .target-word {
+            color: #d97706;
+            text-shadow: 2px 2px 4px rgba(245, 158, 11, 0.2);
+        }
+
+        .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '⚠️';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.88);
+            padding: 0 1rem;
+            font-size: 1.2rem;
+        }
+
+        .taboo-card.team-1 .divider::before {
+            background: rgba(239, 246, 255, 0.95);
+        }
+
+        .taboo-card.team-2 .divider::before {
+            background: rgba(255, 247, 237, 0.95);
+        }
+
+        .forbidden-section {
+            text-align: center;
+        }
+
+        .forbidden-label {
+            font-size: 1rem;
+            color: var(--danger);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .forbidden-words {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .forbidden-word {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+            color: var(--danger);
+            padding: 1rem 2rem;
+            border-radius: 16px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            border: 2px solid rgba(239, 68, 68, 0.2);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .forbidden-word::before {
+            content: '🚫';
+            margin-left: 0.5rem;
+            opacity: 0.7;
+        }
+
+        /* Control Buttons */
+        .controls {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: nowrap;
+            justify-content: center;
+            margin-top: 0;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .btn {
+            padding: 0.9rem 0.4rem;
+            border: none;
+            border-radius: 16px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            flex: 1 1 0;
+            min-width: 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* Side Panel */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .info-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .rules-list {
+            list-style: none;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .rules-details summary {
+            list-style: none;
+            cursor: pointer;
+        }
+
+        .rules-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .rules-summary-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .expand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            transition: transform 0.25s ease;
+        }
+
+        .expand-icon::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-left: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(-45deg) translateY(-1px);
+            opacity: 0.9;
+        }
+
+        .rules-details[open] .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .rules-list li {
+            padding-right: 1.5rem;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .rules-list li::before {
+            content: '•';
+            position: absolute;
+            right: 0;
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .current-turn {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .turn-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .turn-player {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .score-panel {
+                position: static;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .team-card {
+                margin-bottom: 0;
+            }
+
+            .side-panel {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .header {
+                padding: 0.6rem 0.8rem;
+            }
+
+            .logo-text {
+                font-size: 1.5rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .score-panel {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.45rem;
+                padding: 0.5rem;
+            }
+
+            .team-card {
+                padding: 0.5rem 0.55rem;
+                border-radius: 12px;
+            }
+
+            .team-name {
+                font-size: 0.82rem;
+            }
+
+            .team-badge {
+                width: 28px;
+                height: 28px;
+                font-size: 0.75rem;
+            }
+
+            .score-display {
+                font-size: 1.38rem;
+                margin: 0.05rem 0;
+            }
+
+            .score-label {
+                font-size: 0.63rem;
+            }
+
+            .target-word {
+                font-size: 2rem;
+            }
+
+            .taboo-card {
+                padding: 1.35rem;
+                border-radius: 22px;
+            }
+
+            .forbidden-word {
+                font-size: 1.1rem;
+                padding: 0.8rem 1.5rem;
+            }
+
+            .side-panel {
+                grid-template-columns: 1fr;
+            }
+
+            .timer-container {
+                width: 60px;
+                height: 60px;
+                top: 10px;
+                left: 10px;
+            }
+
+            .timer-text {
+                font-size: 0.95rem;
+            }
+
+            .header-controls {
+                gap: 0.45rem;
+            }
+
+            .btn-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .controls {
+                max-width: 100%;
+                gap: 0.45rem;
+            }
+
+            .btn {
+                font-size: 0.92rem;
+                padding: 0.78rem 0.2rem;
+                border-radius: 12px;
+            }
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        /* Dark mode specific adjustments */
+        [data-theme="dark"] .taboo-card::before {
+            opacity: 0.8;
+        }
+
+        [data-theme="dark"] .forbidden-word {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <!-- SVG Gradients -->
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">ت</div>
+            <div class="logo-text">تابو</div>
+        </div>
+        <div class="header-controls">
+            <button class="btn-icon" onclick="toggleTheme()" title="تبديل الوضع">
+                <span id="theme-icon">🌙</span>
+            </button>
+            <button class="btn-icon" id="reset-btn" title="إعادة اللعبة">
+                <span>↻</span>
+            </button>
+            <button class="btn-icon" id="settings-btn" title="الإعدادات">
+                <span>⚙️</span>
+            </button>
+            <div class="settings-panel" id="settings-panel">
+                <div class="settings-title">الإعدادات</div>
+                <label class="setting-item">
+                    <span>عدد الكلمات لكل دور</span>
+                    <input id="cards-per-round-input" type="number" min="1" max="20" value="5">
+                </label>
+                <label class="setting-item">
+                    <span>عدد مرات التخطي لكل فريق</span>
+                    <input id="skip-limit-input" type="number" min="0" max="10" value="3">
+                </label>
+                <label class="setting-item">
+                    <span>وقت الدور (ثانية)</span>
+                    <input id="round-seconds-input" type="number" min="20" max="180" value="60">
+                </label>
+                <div class="settings-actions">
+                    <button class="settings-save" id="save-settings-btn">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Panel - Scores -->
+        <aside class="score-panel">
+            <div class="team-card team-1 active animate-in">
+                <div class="team-header">
+                    <span class="team-name" id="team-name-0">الفريق البنفسجي</span>
+                </div>
+                <div class="score-display" id="score-0">0</div>
+                <div class="score-label" id="score-meta-0">تخطي 0/3</div>
+            </div>
+
+            <div class="team-card team-2 animate-in" style="animation-delay: 0.1s;">
+                <div class="team-header">
+                    <span class="team-name" id="team-name-1">الفريق البرتقالي</span>
+                </div>
+                <div class="score-display" id="score-1">0</div>
+                <div class="score-label" id="score-meta-1">تخطي 0/3</div>
+            </div>
+        </aside>
+
+        <!-- Center - Game Area -->
+        <main class="game-area">
+            <!-- Taboo Card -->
+            <div class="card-container animate-in" style="animation-delay: 0.2s;">
+                <div class="taboo-card team-1" id="taboo-card">
+                    <div class="card-header">
+                        <!-- Timer -->
+                        <div class="timer-container animate-in">
+                            <svg class="timer-svg" width="140" height="140" viewBox="0 0 140 140">
+                                <circle class="timer-bg" cx="70" cy="70" r="60"></circle>
+                                <circle class="timer-progress" id="timer-progress" cx="70" cy="70" r="60"></circle>
+                            </svg>
+                            <div class="timer-text" id="timer-text">60</div>
+                        </div>
+                        <h1 class="target-word" id="target-word">...</h1>
+                    </div>
+
+                    <div class="forbidden-section">
+                        <div class="forbidden-label">
+                            <span>⚠️</span>
+                            <span>كلمات ممنوعة</span>
+                            <span>⚠️</span>
+                        </div>
+                        <div class="forbidden-words" id="forbidden-words">
+                            <div class="forbidden-word">...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls animate-in" style="animation-delay: 0.3s;">
+                <button class="btn btn-success" id="correct-btn">
+                    <span>✓</span>
+                    <span>صح</span>
+                </button>
+                <button class="btn btn-danger" id="wrong-btn">
+                    <span>✗</span>
+                    <span>خطأ</span>
+                </button>
+                <button class="btn btn-primary" id="skip-btn">
+                    <span>⏭</span>
+                    <span>تخطي</span>
+                </button>
+            </div>
+        </main>
+
+        <!-- Right Panel -->
+        <aside class="side-panel">
+            <div class="info-card animate-in" style="animation-delay: 0.1s;">
+                <details class="rules-details">
+                    <summary class="rules-summary-row">
+                        <div class="info-title" style="margin-bottom: 0;">
+                            <span>📋</span>
+                            <span>قواعد اللعبة</span>
+                        </div>
+                        <span class="expand-icon" aria-hidden="true"></span>
+                    </summary>
+                    <ul class="rules-list">
+                        <li>طريقة اللعب:</li>
+                        <li>وصف الكلمة بدون استخدام الكلمات الممنوعة</li>
+                        <li>لا يجوز استخدام الإيماءات أو الأصوات</li>
+                        <li>كل فريق لديه عدد محدود من التخطي طوال اللعبة</li>
+                        <li>يتبدل الدور تلقائيًا بعد انتهاء الوقت أو إكمال الكلمات</li>
+                        <li>الهدف: اجمع أكبر عدد من النقاط بوصف الكلمات لزملائك دون استخدام الكلمات الممنوعة</li>
+                    </ul>
+                </details>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module">
+        import { tabooDeck, tabooConfig } from './data.js';
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            const currentTheme = html.getAttribute('data-theme');
+
+            if (currentTheme === 'dark') {
+                html.removeAttribute('data-theme');
+                icon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                icon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        window.toggleTheme = toggleTheme;
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-icon').textContent = '☀️';
+        }
+
+        const state = {
+            settings: {
+                cardsPerRound: Number.parseInt(tabooConfig?.questionsPerRound || 5, 10) || 5,
+                skipLimit: Number.parseInt(tabooConfig?.skipLimit || 3, 10) || 3,
+                roundSeconds: Number.parseInt(tabooConfig?.roundSeconds || 60, 10) || 60,
+            },
+            teams: [
+                { name: 'الفريق البنفسجي', score: 0, skipsUsed: 0 },
+                { name: 'الفريق البرتقالي', score: 0, skipsUsed: 0 },
+            ],
+            activeTeam: 0,
+            cardsUsedThisTurn: 0,
+            timeLeft: 60,
+            timerHandle: null,
+            deck: [],
+            deckIndex: 0,
+        };
+
+        const scoreEls = [document.getElementById('score-0'), document.getElementById('score-1')];
+        const scoreMetaEls = [document.getElementById('score-meta-0'), document.getElementById('score-meta-1')];
+        const teamCards = Array.from(document.querySelectorAll('.team-card'));
+        const targetWordEl = document.getElementById('target-word');
+        const forbiddenWordsEl = document.getElementById('forbidden-words');
+        const tabooCardEl = document.getElementById('taboo-card');
+        const timerText = document.getElementById('timer-text');
+        const timerProgress = document.getElementById('timer-progress');
+
+        const settingsPanel = document.getElementById('settings-panel');
+        const cardsPerRoundInput = document.getElementById('cards-per-round-input');
+        const skipLimitInput = document.getElementById('skip-limit-input');
+        const roundSecondsInput = document.getElementById('round-seconds-input');
+
+        const circumference = 2 * Math.PI * 60;
+
+        function shuffleDeck() {
+            state.deck = tabooDeck.slice();
+            for (let i = state.deck.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
+            }
+            state.deckIndex = 0;
+        }
+
+        function getNextCard() {
+            if (!state.deck.length || state.deckIndex >= state.deck.length) {
+                shuffleDeck();
+            }
+            const card = state.deck[state.deckIndex];
+            state.deckIndex += 1;
+            return card;
+        }
+
+        function renderCard(card) {
+            targetWordEl.textContent = card?.word || '...';
+            forbiddenWordsEl.textContent = '';
+
+            const forbidden = Array.isArray(card?.forbiddenWords) ? card.forbiddenWords.slice(0, 5) : [];
+            forbidden.forEach((word) => {
+                const item = document.createElement('div');
+                item.className = 'forbidden-word';
+                item.textContent = word;
+                forbiddenWordsEl.appendChild(item);
+            });
+
+            if (!forbidden.length) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'forbidden-word';
+                placeholder.textContent = 'لا توجد كلمات ممنوعة';
+                forbiddenWordsEl.appendChild(placeholder);
+            }
+        }
+
+        function renderTeams() {
+            state.teams.forEach((team, idx) => {
+                scoreEls[idx].textContent = String(team.score);
+                scoreMetaEls[idx].textContent = `تخطي ${team.skipsUsed}/${state.settings.skipLimit}`;
+                teamCards[idx].classList.toggle('active', idx === state.activeTeam);
+            });
+            tabooCardEl.classList.toggle('team-1', state.activeTeam === 0);
+            tabooCardEl.classList.toggle('team-2', state.activeTeam === 1);
+        }
+
+        function updateTimerUi() {
+            timerText.textContent = String(state.timeLeft);
+            const offset = circumference - (state.timeLeft / state.settings.roundSeconds) * circumference;
+            timerProgress.style.strokeDashoffset = offset;
+            timerProgress.style.stroke = state.timeLeft <= 10 ? '#ef4444' : 'url(#timerGradient)';
+        }
+
+        function endTurn() {
+            clearInterval(state.timerHandle);
+            state.timerHandle = null;
+            state.activeTeam = state.activeTeam === 0 ? 1 : 0;
+            startTurn();
+        }
+
+        function startTurn() {
+            state.cardsUsedThisTurn = 0;
+            state.timeLeft = state.settings.roundSeconds;
+            renderTeams();
+            renderCard(getNextCard());
+            updateTimerUi();
+
+            clearInterval(state.timerHandle);
+            state.timerHandle = setInterval(() => {
+                state.timeLeft -= 1;
+                if (state.timeLeft <= 0) {
+                    state.timeLeft = 0;
+                    updateTimerUi();
+                    endTurn();
+                    return;
+                }
+                updateTimerUi();
+            }, 1000);
+        }
+
+        function nextCardAndCount() {
+            state.cardsUsedThisTurn += 1;
+            if (state.cardsUsedThisTurn >= state.settings.cardsPerRound) {
+                endTurn();
+                return;
+            }
+            renderCard(getNextCard());
+        }
+
+        function onCorrect() {
+            state.teams[state.activeTeam].score += 1;
+            renderTeams();
+            nextCardAndCount();
+        }
+
+        function onWrong() {
+            nextCardAndCount();
+        }
+
+        function onSkip() {
+            const team = state.teams[state.activeTeam];
+            if (team.skipsUsed >= state.settings.skipLimit) {
+                return;
+            }
+            team.skipsUsed += 1;
+            renderTeams();
+            nextCardAndCount();
+        }
+
+        function applySettings() {
+            state.settings.cardsPerRound = Math.max(1, Math.min(20, Number.parseInt(cardsPerRoundInput.value, 10) || 5));
+            state.settings.skipLimit = Math.max(0, Math.min(10, Number.parseInt(skipLimitInput.value, 10) || 3));
+            state.settings.roundSeconds = Math.max(20, Math.min(180, Number.parseInt(roundSecondsInput.value, 10) || 60));
+            cardsPerRoundInput.value = String(state.settings.cardsPerRound);
+            skipLimitInput.value = String(state.settings.skipLimit);
+            roundSecondsInput.value = String(state.settings.roundSeconds);
+            renderTeams();
+            updateTimerUi();
+        }
+
+        function resetGame() {
+            state.teams.forEach((team) => {
+                team.score = 0;
+                team.skipsUsed = 0;
+            });
+            state.activeTeam = 0;
+            shuffleDeck();
+            startTurn();
+        }
+
+        document.getElementById('correct-btn').addEventListener('click', onCorrect);
+        document.getElementById('wrong-btn').addEventListener('click', onWrong);
+        document.getElementById('skip-btn').addEventListener('click', onSkip);
+        document.getElementById('save-settings-btn').addEventListener('click', () => {
+            applySettings();
+            settingsPanel.classList.remove('open');
+        });
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            settingsPanel.classList.toggle('open');
+        });
+        document.getElementById('reset-btn').addEventListener('click', resetGame);
+
+        document.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!settingsPanel.contains(target) && target.id !== 'settings-btn' && target.parentElement?.id !== 'settings-btn') {
+                settingsPanel.classList.remove('open');
+            }
+        });
+
+        cardsPerRoundInput.value = String(state.settings.cardsPerRound);
+        skipLimitInput.value = String(state.settings.skipLimit);
+        roundSecondsInput.value = String(state.settings.roundSeconds);
+        shuffleDeck();
+        startTurn();
+    </script>
+</body>
+</html>
