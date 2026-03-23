@@ -1,352 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  />
-  <meta name="theme-color" content="#f7dfee" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Susu 🌸</title>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="لعبة كلمات عربية يومية تعمل بالكامل داخل المتصفح ومناسبة للنشر على GitHub Pages."
+    />
+    <title>كلمة اليوم</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <h1 id="app-title">Wordle</h1>
+        </div>
+        <div class="hero-actions">
+          <button id="hint-button" class="ghost-button" type="button">
+            تلميح (2)
+          </button>
+          <button id="reset-button" class="ghost-button icon-button" type="button" aria-label="جولة جديدة" title="جولة جديدة">
+            ↻
+          </button>
+        </div>
+      </header>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+      <div class="legend-wrap">
+        <div class="legend" aria-label="شرح الألوان">
+          <span class="legend-item correct">صحيح</span>
+          <span class="legend-item present">موجود</span>
+          <span class="legend-item absent">غير موجود</span>
+        </div>
+      </div>
 
-    html, body {
-      width: 100%;
-      min-height: 100dvh;
-      overflow: hidden;
-      font-family: "Trebuchet MS", "Comic Sans MS", "Arial Rounded MT Bold", sans-serif;
-      background: linear-gradient(135deg, #ffdff2, #e4f7ff, #fff1c9, #f0e4ff);
-      background-size: 400% 400%;
-      animation: bgShift 14s ease infinite;
-      cursor: pointer;
-    }
+      <main class="game-layout">
+        <section class="panel board-panel" aria-label="لوحة اللعبة">
+          <p id="hint-display" class="hint-display"></p>
+          <div id="result-banner" class="result-banner" role="status" aria-live="polite"></div>
+          <div id="board" class="board" aria-live="polite"></div>
+          <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        </section>
+        <section class="keyboard-panel panel" aria-label="لوحة المفاتيح">
+          <div id="keyboard" class="keyboard"></div>
+        </section>
+      </main>
+      <p class="footer-note">ملاحظة: الحرفان ى وئ يتم تطبيعهما إلى ي أثناء المقارنة.</p>
+    </div>
 
-    body {
-      position: relative;
-      padding-top: env(safe-area-inset-top);
-    }
-
-    @keyframes bgShift {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    .glow {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(50px);
-      opacity: 0.45;
-      animation: floatGlow 10s ease-in-out infinite alternate;
-      pointer-events: none;
-    }
-
-    .glow1 {
-      width: 260px;
-      height: 260px;
-      background: #ffc6e6;
-      top: 5%;
-      left: 8%;
-    }
-
-    .glow2 {
-      width: 320px;
-      height: 320px;
-      background: #cfefff;
-      bottom: 10%;
-      right: 8%;
-      animation-delay: 1.2s;
-    }
-
-    .glow3 {
-      width: 220px;
-      height: 220px;
-      background: #fff2b8;
-      top: 40%;
-      right: 20%;
-      animation-delay: 2.4s;
-    }
-
-    @keyframes floatGlow {
-      from {
-        transform: translateY(-20px) translateX(-10px) scale(1);
-      }
-      to {
-        transform: translateY(20px) translateX(15px) scale(1.08);
-      }
-    }
-
-    .page-title {
-      position: fixed;
-      top: calc(env(safe-area-inset-top) + 12px);
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 20;
-      pointer-events: none;
-      font-size: clamp(1.8rem, 4vw, 3rem);
-      color: #ffffff;
-      text-shadow:
-        0 0 10px rgba(255,255,255,0.75),
-        0 0 18px rgba(255,182,218,0.9),
-        0 0 30px rgba(190,223,255,0.75);
-      letter-spacing: 2px;
-      animation: titlePulse 3s ease-in-out infinite;
-    }
-
-    @keyframes titlePulse {
-      0%, 100% { transform: translateX(-50%) scale(1); }
-      50% { transform: translateX(-50%) scale(1.05); }
-    }
-
-    .word {
-      position: absolute;
-      font-weight: bold;
-      white-space: nowrap;
-      user-select: none;
-      pointer-events: none;
-      z-index: 3;
-      opacity: 0;
-      text-shadow: 0 2px 10px rgba(255,255,255,0.7);
-      animation-name: flyWords;
-      animation-timing-function: linear;
-      animation-iteration-count: infinite;
-    }
-
-    @keyframes flyWords {
-      0% {
-        transform: translate(var(--startX), var(--startY)) scale(0.5) rotate(0deg);
-        opacity: 0;
-      }
-      10% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.95;
-      }
-      90% {
-        opacity: 1;
-      }
-      100% {
-        transform: translate(var(--endX), var(--endY)) scale(1.25) rotate(360deg);
-        opacity: 0;
-      }
-    }
-
-    .flower {
-      position: absolute;
-      font-size: 1.4rem;
-      user-select: none;
-      pointer-events: none;
-      z-index: 2;
-      opacity: 0;
-      filter: drop-shadow(0 4px 8px rgba(255,255,255,0.6));
-      animation-name: floatFlower;
-      animation-timing-function: linear;
-      animation-iteration-count: infinite;
-    }
-
-    @keyframes floatFlower {
-      0% {
-        transform: translate(var(--fx1), var(--fy1)) rotate(0deg) scale(0.7);
-        opacity: 0;
-      }
-      10% {
-        opacity: 0.9;
-      }
-      50% {
-        opacity: 1;
-      }
-      100% {
-        transform: translate(var(--fx2), var(--fy2)) rotate(360deg) scale(1.2);
-        opacity: 0;
-      }
-    }
-
-    .sparkle {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.85);
-      box-shadow: 0 0 12px rgba(255,255,255,0.9);
-      pointer-events: none;
-      z-index: 1;
-      animation: twinkle 2.5s ease-in-out infinite;
-    }
-
-    @keyframes twinkle {
-      0%, 100% {
-        transform: scale(0.6);
-        opacity: 0.3;
-      }
-      50% {
-        transform: scale(1.4);
-        opacity: 1;
-      }
-    }
-
-    .click-burst {
-      position: absolute;
-      pointer-events: none;
-      user-select: none;
-      z-index: 50;
-      animation: burstFly 1.5s ease-out forwards;
-      filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
-    }
-
-    @keyframes burstFly {
-      0% {
-        transform: translate(0, 0) scale(0.5) rotate(0deg);
-        opacity: 0;
-      }
-      15% {
-        opacity: 1;
-      }
-      100% {
-        transform: translate(var(--dx), var(--dy)) scale(1.4) rotate(var(--rot));
-        opacity: 0;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .page-title {
-        top: calc(env(safe-area-inset-top) + 10px);
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="glow glow1"></div>
-  <div class="glow glow2"></div>
-  <div class="glow glow3"></div>
-
-  <div class="page-title">Susu 🌸</div>
-
-  <script>
-    const words = ["Esraa", "Susu"];
-    const flowers = ["🌸", "🌷", "🌼", "🌺", "💐", "🪻"];
-    const clickIcons = ["💖", "💕", "💗", "💓", "✨", "🌸", "⭐"];
-    const pastelColors = [
-      "#ff9ecf", "#ffb7d5", "#ffd6a5", "#fff0a8",
-      "#bde7ff", "#cdb4ff", "#d8f3dc", "#ffc8dd"
-    ];
-
-    function rand(min, max) {
-      return Math.random() * (max - min) + min;
-    }
-
-    function randItem(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
-
-    function createWord() {
-      const el = document.createElement("div");
-      el.className = "word";
-      el.textContent = randItem(words);
-
-      const startX = rand(-20, 120);
-      const startY = rand(-20, 120);
-      const endX = rand(-20, 120);
-      const endY = rand(-20, 120);
-
-      el.style.left = "0";
-      el.style.top = "0";
-      el.style.setProperty("--startX", `${startX}vw`);
-      el.style.setProperty("--startY", `${startY}vh`);
-      el.style.setProperty("--endX", `${endX}vw`);
-      el.style.setProperty("--endY", `${endY}vh`);
-      el.style.fontSize = `${rand(20, 54)}px`;
-      el.style.color = randItem(pastelColors);
-      el.style.animationDuration = `${rand(7, 15)}s`;
-      el.style.animationDelay = `${rand(0, 8)}s`;
-
-      document.body.appendChild(el);
-    }
-
-    function createFlower() {
-      const el = document.createElement("div");
-      el.className = "flower";
-      el.textContent = randItem(flowers);
-
-      const fx1 = rand(-15, 110);
-      const fy1 = rand(-15, 110);
-      const fx2 = rand(-15, 110);
-      const fy2 = rand(-15, 110);
-
-      el.style.left = "0";
-      el.style.top = "0";
-      el.style.setProperty("--fx1", `${fx1}vw`);
-      el.style.setProperty("--fy1", `${fy1}vh`);
-      el.style.setProperty("--fx2", `${fx2}vw`);
-      el.style.setProperty("--fy2", `${fy2}vh`);
-      el.style.fontSize = `${rand(18, 42)}px`;
-      el.style.animationDuration = `${rand(10, 20)}s`;
-      el.style.animationDelay = `${rand(0, 10)}s`;
-
-      document.body.appendChild(el);
-    }
-
-    function createSparkle() {
-      const el = document.createElement("div");
-      el.className = "sparkle";
-      el.style.left = `${rand(0, 100)}vw`;
-      el.style.top = `${rand(0, 100)}vh`;
-      el.style.animationDelay = `${rand(0, 3)}s`;
-      el.style.animationDuration = `${rand(1.8, 3.8)}s`;
-      document.body.appendChild(el);
-    }
-
-    function createClickBurst(x, y) {
-      const count = 12;
-
-      for (let i = 0; i < count; i++) {
-        const el = document.createElement("div");
-        el.className = "click-burst";
-        el.textContent = randItem(clickIcons);
-
-        const angle = rand(0, Math.PI * 2);
-        const distance = rand(40, 120);
-        const dx = Math.cos(angle) * distance;
-        const dy = Math.sin(angle) * distance;
-
-        el.style.left = `${x}px`;
-        el.style.top = `${y}px`;
-        el.style.fontSize = `${rand(18, 34)}px`;
-        el.style.color = randItem(pastelColors);
-        el.style.setProperty("--dx", `${dx}px`);
-        el.style.setProperty("--dy", `${dy}px`);
-        el.style.setProperty("--rot", `${rand(-180, 180)}deg`);
-        el.style.animationDuration = `${rand(1.1, 1.8)}s`;
-
-        document.body.appendChild(el);
-
-        setTimeout(() => {
-          el.remove();
-        }, 1800);
-      }
-    }
-
-    document.addEventListener("click", (e) => {
-      createClickBurst(e.clientX, e.clientY);
-    });
-
-    document.addEventListener("touchstart", (e) => {
-      const touch = e.touches[0];
-      if (touch) {
-        createClickBurst(touch.clientX, touch.clientY);
-      }
-    }, { passive: true });
-
-    for (let i = 0; i < 28; i++) createWord();
-    for (let i = 0; i < 40; i++) createFlower();
-    for (let i = 0; i < 35; i++) createSparkle();
-  </script>
-</body>
+    <script src="./word-data.js"></script>
+    <script src="./app.js"></script>
+  </body>
 </html>
