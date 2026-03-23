@@ -349,8 +349,8 @@ input {
 @media (min-width: 1024px) {
   .game-layout {
     display: grid;
-    direction: ltr;
     grid-template-columns: minmax(0, 1fr) minmax(500px, 560px);
+    grid-template-areas: "board keyboard";
     gap: 20px;
     align-items: start;
     max-width: 1100px;
@@ -361,6 +361,14 @@ input {
   .keyboard-panel {
     width: 100%;
     margin: 0;
+  }
+
+  .board-panel {
+    grid-area: board;
+  }
+
+  .keyboard-panel {
+    grid-area: keyboard;
   }
 
   .board-panel {
