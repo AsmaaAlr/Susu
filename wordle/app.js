@@ -276,7 +276,7 @@ function renderKeyboard() {
   elements.keyboard.textContent = "";
 
   const letterRows = state.keyboardRows.map((row) => row.filter((key) => key !== "ENTER" && key !== "⌫"));
-  const rowsWithControls = [...letterRows, ["ENTER", "⌫", "X"]];
+  const rowsWithControls = [...letterRows, ["⌫", "X", "ENTER"]];
   rowsWithControls.forEach((rowValues) => {
     const row = document.createElement("div");
     row.className = "keyboard-row";
@@ -290,11 +290,8 @@ function renderKeyboard() {
       keyButton.textContent =
         rawKey === "ENTER" ? "إدخال" : rawKey === "⌫" ? "حذف" : rawKey === "X" ? "X" : rawKey;
 
-      if (rawKey === "ENTER" || rawKey === "⌫") {
-        keyButton.classList.add("special");
-      }
-      if (rawKey === "X") {
-        keyButton.classList.add("placeholder");
+      if (rawKey === "X" || rawKey === "ENTER" || rawKey === "⌫") {
+        keyButton.classList.add("special", "control-key");
       }
 
       const status = state.keyboardState[rawKey];

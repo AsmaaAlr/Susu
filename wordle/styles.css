@@ -305,11 +305,18 @@ input {
   min-width: 86px;
 }
 
-.key.placeholder {
-  background: rgba(62, 40, 26, 0.06);
-  color: rgba(62, 40, 26, 0.38);
-  border-color: var(--border);
-  box-shadow: none;
+.key.control-key {
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--text);
+  border-color: rgba(62, 40, 26, 0.16);
+  opacity: 1;
+}
+
+.key[data-key="X"] {
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--text);
+  border-color: rgba(62, 40, 26, 0.16);
+  opacity: 1;
 }
 
 .toast {
@@ -359,8 +366,8 @@ input {
 
   .key {
     min-width: 0;
-    min-height: 44px;
-    padding: 0 6px;
+    min-height: 52px;
+    padding: 0 4px;
     border-radius: 14px;
     font-size: 0.95rem;
   }
@@ -370,6 +377,9 @@ input {
   }
 
   .keyboard-row {
-    gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    min-width: 100%;
+    gap: 4px;
   }
 }
