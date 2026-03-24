@@ -1,54 +1,50 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="لعبة كلمات عربية يومية تعمل بالكامل داخل المتصفح ومناسبة للنشر على GitHub Pages."
-    />
-    <title>Wordle</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <div class="page-shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <h1 id="app-title">Wordle</h1>
-        </div>
-        <div class="hero-actions">
-          <button id="hint-button" class="ghost-button" type="button">
-            تلميح (2)
-          </button>
-          <button id="reset-button" class="ghost-button icon-button" type="button" aria-label="جولة جديدة" title="جولة جديدة">
-            ↻
-          </button>
-        </div>
-      </header>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#f7dfee" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Susu 🌸</title>
 
-      <div class="legend-wrap">
-        <div class="legend" aria-label="شرح الألوان">
-          <span class="legend-item correct">صحيح</span>
-          <span class="legend-item present">موجود</span>
-          <span class="legend-item absent">غير موجود</span>
-        </div>
-      </div>
+  <style>
+    * {
+      box-sizing: border-box;
+@@ -13,7 +19,7 @@
 
-      <main class="game-layout">
-        <section class="panel board-panel" aria-label="لوحة اللعبة">
-          <p id="hint-display" class="hint-display"></p>
-          <div id="result-banner" class="result-banner" role="status" aria-live="polite"></div>
-          <div id="board" class="board" aria-live="polite"></div>
-          <div id="toast" class="toast" role="status" aria-live="polite"></div>
-        </section>
-        <section class="keyboard-panel panel" aria-label="لوحة المفاتيح">
-          <div id="keyboard" class="keyboard"></div>
-        </section>
-      </main>
-      <p class="footer-note">ملاحظة: الحرفان ى وئ يتم تطبيعهما إلى ي أثناء المقارنة.</p>
-    </div>
+    html, body {
+      width: 100%;
+      height: 100%;
+      min-height: 100dvh;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Comic Sans MS", "Arial Rounded MT Bold", sans-serif;
+      background: linear-gradient(135deg, #ffdff2, #e4f7ff, #fff1c9, #f0e4ff);
+@@ -24,6 +30,7 @@
 
-    <script src="./word-data.js"></script>
-    <script src="./app.js"></script>
-  </body>
-</html>
+    body {
+      position: relative;
+      padding-top: env(safe-area-inset-top);
+    }
+
+    @keyframes bgShift {
+@@ -78,7 +85,7 @@
+
+    .page-title {
+      position: fixed;
+      top: 18px;
+      top: calc(env(safe-area-inset-top) + 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+@@ -210,7 +217,7 @@
+
+    @media (max-width: 600px) {
+      .page-title {
+        top: 14px;
+        top: calc(env(safe-area-inset-top) + 10px);
+      }
+    }
+  </style>
