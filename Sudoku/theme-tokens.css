@@ -17,22 +17,44 @@
   --status-correct: #3FA66B;
 
   --shadow-soft: rgba(0, 0, 0, 0.05);
+
+  --board-line: #bba792;
+  --cell-bg: #fbf7f1;
+  --cell-line: rgba(82, 64, 49, 0.08);
+  --cell-fixed-bg: #e8dfd2;
+  --cell-fixed-text: #4a3a31;
+  --cell-selected-bg: #f4dec0;
+  --cell-selected-ring: #d89b2b;
+  --cell-related-bg: #f8eee0;
+  --cell-same-bg: #dff2e6;
+  --wrong-fill: #cf4d43;
 }
 
 [data-theme="night"] {
-  --bg-main: #1F1A17;
-  --card: #2A2420;
-  --border: #4A4038;
-  --key-bg: #3A322C;
+  --bg-main: #17120f;
+  --card: #221c18;
+  --border: #4f443c;
+  --key-bg: #302923;
 
-  --text-primary: #F3EADF;
-  --text-secondary: #C7B8A8;
+  --text-primary: #fff3e7;
+  --text-secondary: #d8c4b1;
 
-  --status-miss: #6F6258;
-  --status-present: #D79A2B;
-  --status-correct: #4FAF74;
+  --status-miss: #8e7d71;
+  --status-present: #f0b54b;
+  --status-correct: #54c17d;
 
-  --shadow-soft: rgba(0, 0, 0, 0.35);
+  --shadow-soft: rgba(0, 0, 0, 0.42);
+
+  --board-line: #85715f;
+  --cell-bg: #2b241f;
+  --cell-line: rgba(255, 244, 230, 0.06);
+  --cell-fixed-bg: #3a312b;
+  --cell-fixed-text: #fff0de;
+  --cell-selected-bg: #5a4425;
+  --cell-selected-ring: #f0b54b;
+  --cell-related-bg: #352c26;
+  --cell-same-bg: #213a2a;
+  --wrong-fill: #d2554c;
 }
 
 :root,

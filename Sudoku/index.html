@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>سودوكو</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <meta name="description" content="لعبة سودوكو عربية تعمل على GitHub Pages" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,12 +19,45 @@
         <p class="eyebrow">Sudoku</p>
         <h1>سودوكو</h1>
       </div>
+
       <div class="topbar-actions">
-        <button id="themeToggle" class="ghost-btn english-label" type="button">Night</button>
+        <button id="newGameBtn" class="primary-btn top-btn" type="button" aria-label="لعبة جديدة">
+          <span class="btn-icon">↻</span>
+          <span>لعبة جديدة</span>
+        </button>
+
+        <button id="themeToggle" class="icon-btn" type="button" aria-label="تبديل الوضع" title="تبديل الوضع">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 1 0 9.8 9.8Z" fill="currentColor"/></svg>
+        </button>
+
+        <div class="settings-wrap">
+          <button id="settingsToggle" class="icon-btn" type="button" aria-label="الإعدادات" title="الإعدادات">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.23-1.13.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.82 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.4 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.23 1.13-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" fill="currentColor"/></svg>
+          </button>
+
+          <div id="settingsPanel" class="settings-panel hidden card" role="dialog" aria-label="إعدادات اللعبة">
+            <h2 class="section-title">إعدادات اللعبة</h2>
+            <div class="settings-grid">
+              <label class="setting-item">
+                <span>المستوى</span>
+                <select id="difficulty" class="select">
+                  <option value="easy">سهل</option>
+                  <option value="medium">متوسط</option>
+                  <option value="hard">صعب</option>
+                </select>
+              </label>
+
+              <button id="themeToggleInside" class="soft-btn setting-btn" type="button">
+                <span class="setting-btn-icon">◐</span>
+                <span>الوضع الليلي</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
-    <main class="layout">
+    <main class="layout single-column">
       <section class="game-panel card">
         <div class="status-row">
           <div class="stat-pill">
@@ -42,43 +76,24 @@
 
         <div id="board" class="board" aria-label="Sudoku board"></div>
 
+        <div class="tool-row">
+          <button id="undoBtn" class="icon-soft-btn" type="button" aria-label="تراجع" title="تراجع">
+            <svg class="stroke-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M20 20v-3a8 8 0 0 0-8-8H4" />
+            </svg>
+          </button>
+          <button id="notesBtn" class="icon-soft-btn" type="button" aria-label="قلم الملاحظات" title="قلم الملاحظات">
+            <svg class="stroke-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+          </button>
+          <button id="hintBtn" class="soft-btn compact-btn" type="button">تلميح</button>
+        </div>
+
         <div class="number-pad" id="numberPad" aria-label="Number pad"></div>
       </section>
-
-      <aside class="side-panel card">
-        <div class="control-group">
-          <label for="difficulty" class="section-title">إعدادات اللعبة</label>
-          <select id="difficulty" class="select">
-            <option value="easy">سهل</option>
-            <option value="medium">متوسط</option>
-            <option value="hard">صعب</option>
-          </select>
-        </div>
-
-        <div class="controls-grid">
-          <button id="newGameBtn" class="primary-btn" type="button">لعبة جديدة</button>
-          <button id="restartBtn" class="soft-btn" type="button">إعادة</button>
-          <button id="notesBtn" class="soft-btn" type="button">ملاحظات</button>
-          <button id="eraseBtn" class="soft-btn" type="button">مسح</button>
-          <button id="hintBtn" class="soft-btn" type="button">تلميح</button>
-          <button id="checkBtn" class="soft-btn" type="button">تحقق</button>
-          <button id="pauseBtn" class="soft-btn" type="button">إيقاف</button>
-          <button id="shareBtn" class="primary-btn" type="button">مشاركة النتيجة</button>
-        </div>
-
-        <div class="info-box">
-          <h2 class="section-title">المميزات</h2>
-          <ul>
-            <li>تظليل الصف والعمود والمربع</li>
-            <li>ملاحظات داخل الخانات</li>
-            <li>تحقق فوري من التعارض</li>
-            <li>تلميح ومشاركة النتيجة</li>
-            <li>يعمل مباشرة على GitHub Pages</li>
-          </ul>
-        </div>
-
-        <div class="message-box" id="messageBox" aria-live="polite">اختاري خانة وابدئي.</div>
-      </aside>
     </main>
   </div>
 
@@ -86,10 +101,15 @@
     <div class="modal card">
       <h2 id="overlayTitle">مبروك!</h2>
       <p id="overlayText">تم حل السودوكو.</p>
-      <div class="modal-actions">
-        <button id="overlayNewGame" class="primary-btn" type="button">لعبة جديدة</button>
+      <div class="modal-preview">
+        <canvas id="shareCanvas" width="1080" height="1350" aria-hidden="true"></canvas>
+      </div>
+      <div class="modal-actions wrap">
+        <button id="overlayWhatsApp" class="primary-btn" type="button">مشاركة على واتساب</button>
+        <button id="overlayNewGame" class="soft-btn" type="button">لعبة جديدة</button>
         <button id="overlayClose" class="soft-btn" type="button">إغلاق</button>
       </div>
+      <p id="shareHelp" class="share-help"></p>
     </div>
   </div>
 
