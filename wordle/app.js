@@ -33,7 +33,6 @@ const ENGLISH_TO_ARABIC_KEY_MAP = {
   x: "X",
   c: "ؤ",
   v: "ر",
-  b: "لا",
   n: "ى",
   m: "ة",
   ",": "و",
@@ -120,7 +119,12 @@ function sanitizeWords(words) {
   return words
     .filter((word) => typeof word === "string")
     .map((word) => word.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((word) => !startsWithAl(word));
+}
+
+function startsWithAl(word) {
+  return normalizeArabic(word).startsWith("ال");
 }
 
 function pickPuzzle() {
@@ -250,15 +254,16 @@ function renderBoard() {
       if (rawLetter) {
         tile.classList.add("filled");
       }
+      if (rowIndex === state.attempts.length && !state.finished && rawLetter) {
+        tile.classList.add("selectable-placeholder");
+        tile.dataset.placeholderIndex = String(colIndex);
+        if (state.selectedPlaceholderIndex === colIndex) {
+          tile.classList.add("selected-placeholder");
+        }
+      }
+
       if (rawLetter === "X") {
         tile.classList.add("placeholder-tile");
-        if (rowIndex === state.attempts.length && !state.finished) {
-          tile.classList.add("selectable-placeholder");
-          tile.dataset.placeholderIndex = String(colIndex);
-          if (state.selectedPlaceholderIndex === colIndex) {
-            tile.classList.add("selected-placeholder");
-          }
-        }
       }
 
       if (statuses[colIndex]) {
@@ -395,10 +400,6 @@ function normalizeKeyboardInput(value) {
     return mappedFromEnglish;
   }
 
-  if (trimmed === "ﻻ" || trimmed === "لا") {
-    return "لا";
-  }
-
   const normalized = normalizeArabic(trimmed);
   return Array.from(normalized).length === 1 ? normalized : "";
 }
@@ -446,10 +447,6 @@ function replaceSelectedPlaceholder(letter) {
   if (!Number.isInteger(index) || index < 0 || index >= letters.length) {
     return false;
   }
-  if (letters[index] !== "X") {
-    return false;
-  }
-
   if (Array.from(letter).length !== 1) {
     return false;
   }

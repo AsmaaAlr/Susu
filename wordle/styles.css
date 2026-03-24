@@ -252,6 +252,10 @@ input {
   outline-offset: 1px;
 }
 
+.tile.selectable-placeholder:not(.placeholder-tile) {
+  background: rgba(255, 255, 255, 0.92);
+}
+
 .tile.correct,
 .key.correct {
   background: var(--correct);
@@ -277,6 +281,14 @@ input {
   margin-top: 20px;
   width: min(100%, 920px);
   margin-inline: auto;
+}
+
+.footer-note {
+  margin: 16px auto 0;
+  width: min(100%, 920px);
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.92rem;
 }
 
 .keyboard {
