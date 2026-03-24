@@ -1,0 +1,73 @@
+/* Arabic Wordle theme tokens */
+
+:root {
+  --font-ar: 'Tajawal', sans-serif;
+  --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  --bg-main: #EDE4D8;
+  --card: #F5EFE6;
+  --border: #D6C8B8;
+  --key-bg: #E7E0D6;
+
+  --text-primary: #3B2F2F;
+  --text-secondary: #7A6A5A;
+
+  --status-miss: #8C7A6B;
+  --status-present: #D89B2B;
+  --status-correct: #3FA66B;
+
+  --shadow-soft: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="night"] {
+  --bg-main: #1F1A17;
+  --card: #2A2420;
+  --border: #4A4038;
+  --key-bg: #3A322C;
+
+  --text-primary: #F3EADF;
+  --text-secondary: #C7B8A8;
+
+  --status-miss: #6F6258;
+  --status-present: #D79A2B;
+  --status-correct: #4FAF74;
+
+  --shadow-soft: rgba(0, 0, 0, 0.35);
+}
+
+:root,
+[data-theme="night"] {
+  --surface-main: var(--bg-main);
+  --surface-card: var(--card);
+  --surface-key: var(--key-bg);
+
+  --text-main: var(--text-primary);
+  --text-muted: var(--text-secondary);
+
+  --game-miss: var(--status-miss);
+  --game-present: var(--status-present);
+  --game-correct: var(--status-correct);
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-main);
+  color: var(--text-main);
+}
+
+html[lang="ar"],
+[dir="rtl"],
+.arabic-ui,
+.game-board,
+.keyboard,
+.tile {
+  font-family: var(--font-ar);
+}
+
+.button,
+.helper-text,
+.badge,
+.meta,
+.english-label {
+  font-family: var(--font-ui);
+}

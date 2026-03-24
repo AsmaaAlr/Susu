@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>سودوكو</title>
+  <meta name="description" content="لعبة سودوكو عربية تعمل على GitHub Pages" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme-tokens.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="arabic-ui">
+  <div class="app-shell">
+    <header class="topbar card">
+      <div>
+        <p class="eyebrow">Sudoku</p>
+        <h1>سودوكو</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="themeToggle" class="ghost-btn english-label" type="button">Night</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="game-panel card">
+        <div class="status-row">
+          <div class="stat-pill">
+            <span class="label">المستوى</span>
+            <strong id="difficultyLabel">سهل</strong>
+          </div>
+          <div class="stat-pill">
+            <span class="label">الوقت</span>
+            <strong id="timer">00:00</strong>
+          </div>
+          <div class="stat-pill">
+            <span class="label">الأخطاء</span>
+            <strong id="mistakes">0 / 3</strong>
+          </div>
+        </div>
+
+        <div id="board" class="board" aria-label="Sudoku board"></div>
+
+        <div class="number-pad" id="numberPad" aria-label="Number pad"></div>
+      </section>
+
+      <aside class="side-panel card">
+        <div class="control-group">
+          <label for="difficulty" class="section-title">إعدادات اللعبة</label>
+          <select id="difficulty" class="select">
+            <option value="easy">سهل</option>
+            <option value="medium">متوسط</option>
+            <option value="hard">صعب</option>
+          </select>
+        </div>
+
+        <div class="controls-grid">
+          <button id="newGameBtn" class="primary-btn" type="button">لعبة جديدة</button>
+          <button id="restartBtn" class="soft-btn" type="button">إعادة</button>
+          <button id="notesBtn" class="soft-btn" type="button">ملاحظات</button>
+          <button id="eraseBtn" class="soft-btn" type="button">مسح</button>
+          <button id="hintBtn" class="soft-btn" type="button">تلميح</button>
+          <button id="checkBtn" class="soft-btn" type="button">تحقق</button>
+          <button id="pauseBtn" class="soft-btn" type="button">إيقاف</button>
+          <button id="shareBtn" class="primary-btn" type="button">مشاركة النتيجة</button>
+        </div>
+
+        <div class="info-box">
+          <h2 class="section-title">المميزات</h2>
+          <ul>
+            <li>تظليل الصف والعمود والمربع</li>
+            <li>ملاحظات داخل الخانات</li>
+            <li>تحقق فوري من التعارض</li>
+            <li>تلميح ومشاركة النتيجة</li>
+            <li>يعمل مباشرة على GitHub Pages</li>
+          </ul>
+        </div>
+
+        <div class="message-box" id="messageBox" aria-live="polite">اختاري خانة وابدئي.</div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="overlay" class="overlay hidden">
+    <div class="modal card">
+      <h2 id="overlayTitle">مبروك!</h2>
+      <p id="overlayText">تم حل السودوكو.</p>
+      <div class="modal-actions">
+        <button id="overlayNewGame" class="primary-btn" type="button">لعبة جديدة</button>
+        <button id="overlayClose" class="soft-btn" type="button">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="puzzles.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
