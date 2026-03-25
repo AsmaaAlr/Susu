@@ -346,18 +346,13 @@ function renderPossibilityPanel() {
     return;
   }
 
-  const candidates = getRemainingCandidates();
-  const constraints = buildProgressConstraints();
-  const knownLetters = new Set([
-    ...constraints.requiredLetters,
-    ...constraints.fixedLetters.filter(Boolean),
-  ]);
+  const clueData = collectProgressClueData();
 
   if (elements.possiblePositions) {
     elements.possiblePositions.textContent = "";
-    const positionSets = derivePositionSets(candidates, constraints, knownLetters);
+    const positionSets = derivePositionSetsFromClues(clueData);
 
-    if (positionSets.length && candidates.length && knownLetters.size) {
+    if (positionSets.length && clueData.size) {
       positionSets.forEach((letterSet, index) => {
         const card = document.createElement("article");
         card.className = "possible-card";
@@ -404,84 +399,85 @@ function getRemainingCandidates() {
   });
 }
 
-function buildProgressConstraints() {
-  const fixedLetters = Array.from({ length: state.wordLength }, () => "");
-  const fixedPositionsByLetter = new Map();
-  const requiredLetters = new Set();
-  const forbiddenLetters = new Set();
-  const bannedPositions = Array.from({ length: state.wordLength }, () => new Set());
+function collectProgressClueData() {
+  const clueData = new Map();
+
+  const ensureEntry = (normalized, display) => {
+    if (!clueData.has(normalized)) {
+      clueData.set(normalized, {
+        display,
+        fixedPositions: new Set(),
+        bannedPositions: new Set(),
+      });
+      return clueData.get(normalized);
+    }
+
+    const entry = clueData.get(normalized);
+    if (display && entry.display !== display) {
+      entry.display = display;
+    }
+    return entry;
+  };
 
   state.attempts.forEach((attempt) => {
     Array.from(attempt.guess).forEach((char, index) => {
-      const status = attempt.evaluation[index];
       const normalized = normalizeArabic(char);
+      const status = attempt.evaluation[index];
 
-      if (!normalized) {
+      if (!normalized || char === "X") {
         return;
       }
 
       if (status === "correct") {
-        fixedLetters[index] = normalized;
-        if (!fixedPositionsByLetter.has(normalized)) {
-          fixedPositionsByLetter.set(normalized, new Set());
-        }
-        fixedPositionsByLetter.get(normalized).add(index);
-        requiredLetters.add(normalized);
+        const entry = ensureEntry(normalized, normalizeClueLetter(char));
+        entry.fixedPositions.add(index);
         return;
       }
 
       if (status === "present") {
-        requiredLetters.add(normalized);
-        bannedPositions[index].add(normalized);
-        return;
-      }
-
-      if (!requiredLetters.has(normalized) && !fixedLetters.includes(normalized)) {
-        forbiddenLetters.add(normalized);
+        const entry = ensureEntry(normalized, normalizeClueLetter(char));
+        entry.bannedPositions.add(index);
       }
     });
   });
 
-  return {
-    fixedLetters,
-    fixedPositionsByLetter,
-    requiredLetters,
-    forbiddenLetters,
-    bannedPositions,
-  };
+  state.revealedHints.forEach((char) => {
+    const normalized = normalizeArabic(char);
+    if (!normalized) {
+      return;
+    }
+    ensureEntry(normalized, normalizeClueLetter(char));
+  });
+
+  return clueData;
 }
 
-function derivePositionSets(candidates, constraints, knownLetters) {
+function derivePositionSetsFromClues(clueData) {
   const positionSets = Array.from({ length: state.wordLength }, () => new Set());
+  const clueEntries = Array.from(clueData.values());
 
-  candidates.forEach((word) => {
-    const letters = Array.from(word);
-
-    letters.forEach((char, index) => {
-      const normalized = normalizeArabic(char);
-      if (!normalized || !knownLetters.has(normalized)) {
+  for (let index = 0; index < state.wordLength; index += 1) {
+    clueEntries.forEach((entry) => {
+      if (entry.fixedPositions.size) {
+        if (entry.fixedPositions.has(index)) {
+          positionSets[index].add(entry.display);
+        }
         return;
       }
 
-      const fixedSlots = constraints.fixedPositionsByLetter.get(normalized);
-      if (fixedSlots && !fixedSlots.has(index)) {
-        return;
+      if (!entry.bannedPositions.has(index)) {
+        positionSets[index].add(entry.display);
       }
-
-      if (constraints.bannedPositions[index].has(normalized)) {
-        return;
-      }
-
-      positionSets[index].add(normalizeClueLetter(char));
     });
-  });
 
-  constraints.fixedLetters.forEach((fixed, index) => {
-    if (fixed) {
-      positionSets[index].clear();
-      positionSets[index].add(normalizeClueLetter(fixed));
+    if (positionSets[index].size > 1) {
+      const fixedEntry = clueEntries.find((entry) => entry.fixedPositions.has(index));
+      if (fixedEntry) {
+        positionSets[index].clear();
+        positionSets[index].add(fixedEntry.display);
+      }
     }
-  });
+  }
 
   return positionSets;
 }
@@ -604,7 +600,7 @@ function addLetter(letter) {
     return;
   }
 
-  if (state.selectedPlaceholderIndex !== null && letter !== "X" && replaceSelectedPlaceholder(letter)) {
+  if (state.selectedPlaceholderIndex !== null && replaceSelectedPlaceholder(letter)) {
     state.selectedPlaceholderIndex = null;
     renderBoard();
     persistState();
