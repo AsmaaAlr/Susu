@@ -243,11 +243,13 @@ function renderBoard() {
           : "";
     const statuses = rowIndex < state.attempts.length ? state.attempts[rowIndex].evaluation : [];
     const letters = Array.from(guessText);
+    const answerLetters = rowIndex < state.attempts.length ? Array.from(state.answer) : [];
 
     for (let colIndex = 0; colIndex < state.wordLength; colIndex += 1) {
       const tile = document.createElement("div");
       const rawLetter = letters[colIndex] ?? "";
-      const displayLetter = rawLetter === "X" ? "" : rawLetter;
+      const answerLetter = answerLetters[colIndex] ?? "";
+      const displayLetter = getDisplayLetter(rawLetter, answerLetter, rowIndex < state.attempts.length);
       tile.className = "tile";
       tile.textContent = displayLetter;
 
@@ -275,6 +277,31 @@ function renderBoard() {
 
     elements.board.appendChild(row);
   }
+}
+
+function getDisplayLetter(guessLetter, answerLetter, isSubmittedAttempt) {
+  if (guessLetter === "X") {
+    return "";
+  }
+
+  if (!isSubmittedAttempt) {
+    return guessLetter;
+  }
+
+  if (
+    guessLetter &&
+    answerLetter &&
+    normalizeArabic(guessLetter) === normalizeArabic(answerLetter) &&
+    isSpecialArabicVariant(answerLetter)
+  ) {
+    return answerLetter;
+  }
+
+  return guessLetter;
+}
+
+function isSpecialArabicVariant(letter) {
+  return letter === "ى" || letter === "ئ" || letter === "ؤ" || letter === "أ" || letter === "إ" || letter === "آ" || letter === "ٱ";
 }
 
 function renderKeyboard() {
@@ -611,6 +638,8 @@ function normalizeArabic(value) {
   if (settings.normalizeYa) {
     result = result.replace(/[ىئ]/g, "ي");
   }
+
+  result = result.replace(/ؤ/g, "و");
 
   if (settings.normalizeTaMarbuta) {
     result = result.replace(/ة/g, "ه");
