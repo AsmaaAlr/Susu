@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="لعبة كلمات عربية مع لوحة احتمالات تساعدك على تتبع الحروف الممكنة."
+    />
+    <title>Wordle</title>
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <h1 id="app-title">Wordle</h1>
+        </div>
+        <div class="hero-actions">
+          <button id="hint-button" class="ghost-button" type="button">
+            تلميح (2)
+          </button>
+          <button id="reset-button" class="ghost-button icon-button" type="button" aria-label="جولة جديدة" title="جولة جديدة">
+            ↻
+          </button>
+        </div>
+      </header>
+
+      <div class="legend-wrap">
+        <div class="legend" aria-label="شرح الألوان">
+          <span class="legend-item correct">صحيح</span>
+          <span class="legend-item present">موجود</span>
+          <span class="legend-item absent">غير موجود</span>
+        </div>
+      </div>
+
+      <main class="game-layout">
+        <section class="panel board-panel" aria-label="لوحة اللعبة">
+          <p id="hint-display" class="hint-display"></p>
+          <div id="result-banner" class="result-banner" role="status" aria-live="polite"></div>
+          <div id="board" class="board" aria-live="polite"></div>
+          <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        </section>
+        <section class="keyboard-panel panel" aria-label="لوحة المفاتيح">
+          <div id="keyboard" class="keyboard"></div>
+        </section>
+      </main>
+
+      <section id="possible-panel" class="panel possible-panel" aria-label="الاحتمالات المتبقية">
+        <div class="possible-header">
+          <div>
+            <h2>الاحتمالات المتبقية</h2>
+          </div>
+        </div>
+        <div id="possible-positions" class="possible-positions"></div>
+      </section>
+
+      <p class="footer-note">ملاحظة: الحرفان ى وئ يتم تطبيعهما إلى ي أثناء المقارنة.</p>
+    </div>
+
+    <script src="./word-data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

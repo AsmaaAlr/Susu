@@ -70,6 +70,8 @@ const elements = {
   toast: document.querySelector("#toast"),
   hintButton: document.querySelector("#hint-button"),
   resetButton: document.querySelector("#reset-button"),
+  possiblePanel: document.querySelector("#possible-panel"),
+  possiblePositions: document.querySelector("#possible-positions"),
 };
 
 init().catch((error) => {
@@ -112,6 +114,7 @@ async function init() {
   renderKeyboard();
   renderHints();
   renderResultBanner();
+  renderPossibilityPanel();
   bindEvents();
 }
 
@@ -139,7 +142,7 @@ function pickPuzzle() {
 
 function getOrCreateActivePuzzle() {
   try {
-    const raw = localStorage.getItem("wordl:active-puzzle");
+    const raw = safeStorageGet("wordl:active-puzzle");
     if (raw) {
       const parsed = JSON.parse(raw);
       if (
@@ -169,11 +172,11 @@ function applyPuzzle(puzzle) {
 }
 
 function saveActivePuzzle(puzzle) {
-  localStorage.setItem("wordl:active-puzzle", JSON.stringify(puzzle));
+  safeStorageSet("wordl:active-puzzle", JSON.stringify(puzzle));
 }
 
 function hydrateSavedState() {
-  const raw = localStorage.getItem(storageKey());
+  const raw = safeStorageGet(storageKey());
   if (!raw) {
     return;
   }
@@ -216,7 +219,7 @@ function persistState() {
     hintsUsed: state.hintsUsed,
     revealedHints: state.revealedHints,
   };
-  localStorage.setItem(storageKey(), JSON.stringify(snapshot));
+  safeStorageSet(storageKey(), JSON.stringify(snapshot));
 }
 
 function storageKey() {
@@ -336,6 +339,170 @@ function renderKeyboard() {
 
     elements.keyboard.appendChild(row);
   });
+}
+
+function renderPossibilityPanel() {
+  if (!elements.possiblePanel) {
+    return;
+  }
+
+  const candidates = getRemainingCandidates();
+  const constraints = buildProgressConstraints();
+  const knownLetters = new Set([
+    ...constraints.requiredLetters,
+    ...constraints.fixedLetters.filter(Boolean),
+  ]);
+
+  if (elements.possiblePositions) {
+    elements.possiblePositions.textContent = "";
+    const positionSets = derivePositionSets(candidates, constraints, knownLetters);
+
+    if (positionSets.length && candidates.length && knownLetters.size) {
+      positionSets.forEach((letterSet, index) => {
+        const card = document.createElement("article");
+        card.className = "possible-card";
+
+        const heading = document.createElement("div");
+        heading.className = "possible-card-head";
+        heading.innerHTML = `<span>الموضع ${index + 1}</span><span>${letterSet.size} حرف</span>`;
+
+        const chips = document.createElement("div");
+        chips.className = "possible-chips";
+
+        const sortedLetters = Array.from(letterSet)
+          .map((letter) => normalizeClueLetter(letter))
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, "ar"));
+        if (!sortedLetters.length) {
+          const empty = document.createElement("span");
+          empty.className = "possible-empty";
+          empty.textContent = "لا توجد بيانات بعد";
+          chips.appendChild(empty);
+        } else {
+          sortedLetters.forEach((letter) => {
+            const chip = document.createElement("span");
+            chip.className = "possible-chip";
+            chip.textContent = letter;
+            chips.appendChild(chip);
+          });
+        }
+
+        card.appendChild(heading);
+        card.appendChild(chips);
+        elements.possiblePositions.appendChild(card);
+      });
+    }
+  }
+}
+
+function getRemainingCandidates() {
+  return state.answers.filter((candidate) => {
+    return state.attempts.every((attempt) => {
+      const evaluation = evaluateGuess(attempt.guess, candidate);
+      return evaluation.every((status, index) => status === attempt.evaluation[index]);
+    });
+  });
+}
+
+function buildProgressConstraints() {
+  const fixedLetters = Array.from({ length: state.wordLength }, () => "");
+  const fixedPositionsByLetter = new Map();
+  const requiredLetters = new Set();
+  const forbiddenLetters = new Set();
+  const bannedPositions = Array.from({ length: state.wordLength }, () => new Set());
+
+  state.attempts.forEach((attempt) => {
+    Array.from(attempt.guess).forEach((char, index) => {
+      const status = attempt.evaluation[index];
+      const normalized = normalizeArabic(char);
+
+      if (!normalized) {
+        return;
+      }
+
+      if (status === "correct") {
+        fixedLetters[index] = normalized;
+        if (!fixedPositionsByLetter.has(normalized)) {
+          fixedPositionsByLetter.set(normalized, new Set());
+        }
+        fixedPositionsByLetter.get(normalized).add(index);
+        requiredLetters.add(normalized);
+        return;
+      }
+
+      if (status === "present") {
+        requiredLetters.add(normalized);
+        bannedPositions[index].add(normalized);
+        return;
+      }
+
+      if (!requiredLetters.has(normalized) && !fixedLetters.includes(normalized)) {
+        forbiddenLetters.add(normalized);
+      }
+    });
+  });
+
+  return {
+    fixedLetters,
+    fixedPositionsByLetter,
+    requiredLetters,
+    forbiddenLetters,
+    bannedPositions,
+  };
+}
+
+function derivePositionSets(candidates, constraints, knownLetters) {
+  const positionSets = Array.from({ length: state.wordLength }, () => new Set());
+
+  candidates.forEach((word) => {
+    const letters = Array.from(word);
+
+    letters.forEach((char, index) => {
+      const normalized = normalizeArabic(char);
+      if (!normalized || !knownLetters.has(normalized)) {
+        return;
+      }
+
+      const fixedSlots = constraints.fixedPositionsByLetter.get(normalized);
+      if (fixedSlots && !fixedSlots.has(index)) {
+        return;
+      }
+
+      if (constraints.bannedPositions[index].has(normalized)) {
+        return;
+      }
+
+      positionSets[index].add(normalizeClueLetter(char));
+    });
+  });
+
+  constraints.fixedLetters.forEach((fixed, index) => {
+    if (fixed) {
+      positionSets[index].clear();
+      positionSets[index].add(normalizeClueLetter(fixed));
+    }
+  });
+
+  return positionSets;
+}
+
+function normalizeClueLetter(letter) {
+  const normalized = normalizeArabic(letter);
+  if (!normalized) {
+    return "";
+  }
+
+  if (/[أإآٱ]/.test(letter)) {
+    return "ا";
+  }
+  if (letter === "ؤ") {
+    return "و";
+  }
+  if (letter === "ى" || letter === "ئ") {
+    return "ي";
+  }
+
+  return normalized;
 }
 
 function bindEvents() {
@@ -515,6 +682,7 @@ function submitGuess() {
   renderBoard();
   renderKeyboard();
   renderResultBanner();
+  renderPossibilityPanel();
   persistState();
 
   if (evaluation.every((item) => item === "correct")) {
@@ -690,7 +858,7 @@ function showToast(message) {
 }
 
 function resetRound() {
-  localStorage.removeItem(storageKey());
+  safeStorageRemove(storageKey());
   const nextPuzzle = pickPuzzle();
   saveActivePuzzle(nextPuzzle);
   applyPuzzle(nextPuzzle);
@@ -705,7 +873,33 @@ function resetRound() {
   renderKeyboard();
   renderHints();
   renderResultBanner();
+  renderPossibilityPanel();
   updateAttemptCounter();
   persistState();
   showToast("بدأت جولة جديدة");
+}
+
+function safeStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn("Storage read failed", error);
+    return null;
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn("Storage write failed", error);
+  }
+}
+
+function safeStorageRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.warn("Storage remove failed", error);
+  }
 }

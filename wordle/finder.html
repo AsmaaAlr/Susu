@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="صفحة مساعدة للبحث عن الكلمات العربية المحتملة من قائمة الإجابات."
+    />
+    <title>Wordle Finder</title>
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell finder-page">
+      <header class="finder-hero">
+        <div class="finder-copy">
+          <p class="finder-kicker">أداة البحث</p>
+          <h1>احتمالات الكلمة</h1>
+          <p class="finder-subtitle">
+            اكتب ما تعرفه من الحروف في أماكنها، واترك الخانات الفارغة للحروف المجهولة.
+          </p>
+        </div>
+        <a class="ghost-button finder-back" href="./index.html">العودة للعبة</a>
+      </header>
+
+      <main class="finder-layout">
+        <section class="panel finder-panel" aria-label="فلاتر البحث">
+          <div class="finder-section">
+            <div class="finder-label-row">
+              <h2>حروف في أماكنها</h2>
+              <span class="finder-hint">5 خانات</span>
+            </div>
+            <div class="finder-pattern" id="pattern-inputs" aria-label="خانات الحروف">
+              <input class="finder-slot" maxlength="1" autocomplete="off" inputmode="text" aria-label="الحرف الأول" />
+              <input class="finder-slot" maxlength="1" autocomplete="off" inputmode="text" aria-label="الحرف الثاني" />
+              <input class="finder-slot" maxlength="1" autocomplete="off" inputmode="text" aria-label="الحرف الثالث" />
+              <input class="finder-slot" maxlength="1" autocomplete="off" inputmode="text" aria-label="الحرف الرابع" />
+              <input class="finder-slot" maxlength="1" autocomplete="off" inputmode="text" aria-label="الحرف الخامس" />
+            </div>
+          </div>
+
+          <div class="finder-section">
+            <label class="finder-label" for="contains-input">حروف موجودة في الكلمة</label>
+            <input
+              id="contains-input"
+              class="finder-text"
+              type="text"
+              autocomplete="off"
+              inputmode="text"
+              placeholder="مثال: ياء"
+            />
+          </div>
+
+          <div class="finder-section">
+            <label class="finder-label" for="exclude-input">حروف مستبعدة</label>
+            <input
+              id="exclude-input"
+              class="finder-text"
+              type="text"
+              autocomplete="off"
+              inputmode="text"
+              placeholder="مثال: ةؤ"
+            />
+          </div>
+
+          <div class="finder-actions">
+            <button id="clear-button" class="secondary-button" type="button">مسح</button>
+          </div>
+        </section>
+
+        <section class="panel finder-results-panel" aria-label="نتائج البحث">
+          <div class="finder-results-header">
+            <div>
+              <h2>النتائج</h2>
+              <p id="results-summary" class="finder-summary">أدخل ما تعرفه لبدء البحث.</p>
+            </div>
+          </div>
+          <div id="results-list" class="finder-results-list" aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./word-data.js"></script>
+    <script>
+      const ENGLISH_TO_ARABIC_KEY_MAP = {
+        q: "ض",
+        w: "ص",
+        e: "ث",
+        r: "ق",
+        t: "ف",
+        y: "غ",
+        u: "ع",
+        i: "ه",
+        o: "خ",
+        p: "ح",
+        "[": "ج",
+        "]": "د",
+        a: "ش",
+        s: "س",
+        d: "ي",
+        f: "ب",
+        g: "ل",
+        h: "ا",
+        j: "ت",
+        k: "ن",
+        l: "م",
+        ";": "ك",
+        "'": "ط",
+        z: "ئ",
+        x: "X",
+        c: "ؤ",
+        v: "ر",
+        n: "ى",
+        m: "ة",
+        ",": "و",
+        ".": "ز",
+        "/": "ظ",
+      };
+
+      const MAX_VISIBLE_RESULTS = 120;
+
+      const elements = {
+        patternInputs: Array.from(document.querySelectorAll(".finder-slot")),
+        containsInput: document.querySelector("#contains-input"),
+        excludeInput: document.querySelector("#exclude-input"),
+        clearButton: document.querySelector("#clear-button"),
+        resultsSummary: document.querySelector("#results-summary"),
+        resultsList: document.querySelector("#results-list"),
+      };
+
+      const state = {
+        answers: [],
+      };
+
+      init();
+
+      function init() {
+        const embeddedData = window.WORDL_DATA;
+        if (!embeddedData) {
+          renderError("تعذر تحميل قائمة الكلمات.");
+          return;
+        }
+
+        const answers = embeddedData.answers?.words ?? [];
+        state.answers = sanitizeWords(answers);
+
+        bindEvents();
+        updateResults();
+      }
+
+      function bindEvents() {
+        elements.patternInputs.forEach((input, index) => {
+          input.addEventListener("input", () => {
+            input.value = normalizeSingleLetter(input.value);
+            if (input.value && index < elements.patternInputs.length - 1) {
+              elements.patternInputs[index + 1].focus();
+            }
+            updateResults();
+          });
+
+          input.addEventListener("keydown", (event) => {
+            if (event.key === "Backspace" && !input.value && index > 0) {
+              elements.patternInputs[index - 1].focus();
+            }
+          });
+        });
+
+        elements.containsInput.addEventListener("input", () => {
+          elements.containsInput.value = normalizeLetterStream(elements.containsInput.value);
+          updateResults();
+        });
+
+        elements.excludeInput.addEventListener("input", () => {
+          elements.excludeInput.value = normalizeLetterStream(elements.excludeInput.value);
+          updateResults();
+        });
+
+        elements.clearButton.addEventListener("click", clearFilters);
+      }
+
+      function clearFilters() {
+        elements.patternInputs.forEach((input) => {
+          input.value = "";
+        });
+        elements.containsInput.value = "";
+        elements.excludeInput.value = "";
+        elements.patternInputs[0].focus();
+        updateResults();
+      }
+
+      function updateResults() {
+        const pattern = elements.patternInputs.map((input) => normalizeSingleLetter(input.value));
+        const contains = normalizeLetterStream(elements.containsInput.value);
+        const excludes = normalizeLetterStream(elements.excludeInput.value);
+        const hasAnyFilter = pattern.some(Boolean) || Boolean(contains) || Boolean(excludes);
+
+        if (!hasAnyFilter) {
+          elements.resultsSummary.textContent = "أدخل ما تعرفه لبدء البحث.";
+          elements.resultsList.textContent = "";
+          return;
+        }
+
+        const results = state.answers.filter((word) => {
+          return (
+            matchesPattern(word, pattern) &&
+            containsRequiredLetters(word, contains) &&
+            !hasExcludedLetters(word, excludes)
+          );
+        });
+
+        const visibleResults = results.slice(0, MAX_VISIBLE_RESULTS);
+        elements.resultsSummary.textContent =
+          results.length === 0
+            ? "لا توجد كلمات مطابقة."
+            : `عدد النتائج: ${results.length}${results.length > MAX_VISIBLE_RESULTS ? `، مع عرض أول ${MAX_VISIBLE_RESULTS}` : ""}`;
+
+        renderResults(visibleResults);
+      }
+
+      function renderResults(results) {
+        elements.resultsList.textContent = "";
+
+        if (!results.length) {
+          const emptyState = document.createElement("div");
+          emptyState.className = "finder-empty";
+          emptyState.textContent = "لا توجد نتائج مطابقة.";
+          elements.resultsList.appendChild(emptyState);
+          return;
+        }
+
+        results.forEach((word) => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "finder-result";
+          item.textContent = word;
+          item.addEventListener("click", async () => {
+            try {
+              await navigator.clipboard.writeText(word);
+              item.classList.add("copied");
+              setTimeout(() => item.classList.remove("copied"), 900);
+            } catch {
+              item.classList.add("copied");
+              setTimeout(() => item.classList.remove("copied"), 900);
+            }
+          });
+          elements.resultsList.appendChild(item);
+        });
+      }
+
+      function renderError(message) {
+        elements.resultsSummary.textContent = message;
+        elements.resultsList.textContent = "";
+      }
+
+      function sanitizeWords(words) {
+        return words
+          .filter((word) => typeof word === "string")
+          .map((word) => word.trim())
+          .filter(Boolean)
+          .filter((word) => !startsWithAl(word));
+      }
+
+      function startsWithAl(word) {
+        return normalizeArabic(word).startsWith("ال");
+      }
+
+      function normalizeSingleLetter(value) {
+        const trimmed = String(value ?? "").trim();
+        if (!trimmed) {
+          return "";
+        }
+
+        const mappedFromEnglish = ENGLISH_TO_ARABIC_KEY_MAP[trimmed.toLowerCase()];
+        if (mappedFromEnglish) {
+          return mappedFromEnglish === "X" ? "" : mappedFromEnglish;
+        }
+
+        const normalized = normalizeArabic(trimmed);
+        return Array.from(normalized)[0] ?? "";
+      }
+
+      function normalizeLetterStream(value) {
+        return Array.from(String(value ?? ""))
+          .map((char) => normalizeSingleLetter(char))
+          .join("");
+      }
+
+      function normalizeArabic(value) {
+        let result = String(value ?? "");
+        result = result.replace(/[\u064B-\u065F\u0670]/g, "");
+        result = result.replace(/\u0640/g, "");
+        result = result.replace(/[أإآٱ]/g, "ا");
+        result = result.replace(/[ىئ]/g, "ي");
+        result = result.replace(/ؤ/g, "و");
+        return result.replace(/[^\u0621-\u064A]/g, "");
+      }
+
+      function matchesPattern(word, pattern) {
+        const letters = Array.from(word);
+        if (letters.length !== pattern.length) {
+          return false;
+        }
+
+        return pattern.every((slot, index) => {
+          if (!slot) {
+            return true;
+          }
+
+          return normalizeArabic(letters[index]) === normalizeArabic(slot);
+        });
+      }
+
+      function containsRequiredLetters(word, contains) {
+        if (!contains) {
+          return true;
+        }
+
+        const wordCounts = countLetters(word);
+        const requiredCounts = countLetters(contains);
+
+        for (const [letter, count] of requiredCounts.entries()) {
+          if ((wordCounts.get(letter) ?? 0) < count) {
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+      function hasExcludedLetters(word, excludes) {
+        if (!excludes) {
+          return false;
+        }
+
+        const excluded = new Set(Array.from(excludes));
+        return Array.from(word).some((char) => excluded.has(normalizeArabic(char)));
+      }
+
+      function countLetters(value) {
+        const counts = new Map();
+        Array.from(value).forEach((char) => {
+          const normalized = normalizeArabic(char);
+          if (!normalized) {
+            return;
+          }
+          counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+        });
+        return counts;
+      }
+    </script>
+  </body>
+</html>
