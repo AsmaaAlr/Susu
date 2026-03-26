@@ -72,6 +72,7 @@ const elements = {
   resetButton: document.querySelector("#reset-button"),
   possiblePanel: document.querySelector("#possible-panel"),
   possiblePositions: document.querySelector("#possible-positions"),
+  celebrationCanvas: document.querySelector("#fx-canvas"),
 };
 
 init().catch((error) => {
@@ -503,6 +504,7 @@ function normalizeClueLetter(letter) {
 
 function bindEvents() {
   document.addEventListener("keydown", handlePhysicalKeyboard);
+  window.addEventListener("resize", resizeCelebrationCanvas);
   elements.board.addEventListener("click", handleBoardClick);
   elements.keyboard.addEventListener("click", handleKeyboardClick);
   elements.hintButton.addEventListener("click", revealHint);
@@ -682,6 +684,7 @@ function submitGuess() {
   persistState();
 
   if (evaluation.every((item) => item === "correct")) {
+    playSoftCombo();
     showToast("أحسنت! تم حل الكلمة.");
   } else if (state.finished) {
     showToast(`انتهت المحاولات. الكلمة كانت: ${state.answer}`);
@@ -854,6 +857,7 @@ function showToast(message) {
 }
 
 function resetRound() {
+  stopSoftCombo();
   safeStorageRemove(storageKey());
   const nextPuzzle = pickPuzzle();
   saveActivePuzzle(nextPuzzle);
@@ -873,6 +877,238 @@ function resetRound() {
   updateAttemptCounter();
   persistState();
   showToast("بدأت جولة جديدة");
+}
+
+
+
+let celebrationFrame = null;
+let celebrationParticles = [];
+let celebrationFlashTimer = null;
+let celebrationBounceTimer = null;
+
+function resizeCelebrationCanvas() {
+  const canvas = elements.celebrationCanvas;
+  if (!canvas) {
+    return;
+  }
+
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(window.innerWidth * ratio);
+  canvas.height = Math.floor(window.innerHeight * ratio);
+  canvas.style.width = `${window.innerWidth}px`;
+  canvas.style.height = `${window.innerHeight}px`;
+
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+}
+
+function randomCelebrationColor() {
+  const palette = [
+    "#ffd84d",
+    "#ff7ab6",
+    "#7dd3fc",
+    "#8bffb7",
+    "#c79bff",
+    "#ffffff",
+    "#ff9f43"
+  ];
+  return palette[Math.floor(Math.random() * palette.length)];
+}
+
+function stopSoftCombo() {
+  if (celebrationFrame) {
+    cancelAnimationFrame(celebrationFrame);
+    celebrationFrame = null;
+  }
+
+  celebrationParticles = [];
+  clearTimeout(celebrationFlashTimer);
+  clearTimeout(celebrationBounceTimer);
+  document.body.classList.remove("flash-overlay");
+
+  const boardPanel = document.querySelector(".board-panel");
+  if (boardPanel) {
+    boardPanel.classList.remove("board-bounce");
+  }
+
+  const canvas = elements.celebrationCanvas;
+  if (canvas) {
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+}
+
+function triggerSoftComboFlash() {
+  document.body.classList.remove("flash-overlay");
+  void document.body.offsetWidth;
+  document.body.classList.add("flash-overlay");
+  celebrationFlashTimer = setTimeout(() => {
+    document.body.classList.remove("flash-overlay");
+  }, 650);
+}
+
+function triggerSoftComboBounce() {
+  return;
+}
+
+function makeSoftComboSparkles(count = 180) {
+  const particles = [];
+  const width = window.innerWidth;
+
+  for (let i = 0; i < count; i += 1) {
+    particles.push({
+      kind: "dot",
+      x: Math.random() * width,
+      y: -10 - Math.random() * 260,
+      vx: (Math.random() - 0.5) * 2.2,
+      vy: 1.2 + Math.random() * 2.2,
+      gravity: 0.012,
+      size: 1.4 + Math.random() * 3.2,
+      rotation: 0,
+      spin: 0,
+      life: 1,
+      decay: 0.004 + Math.random() * 0.005,
+      color: randomCelebrationColor(),
+    });
+  }
+
+  return particles;
+}
+
+function makeSoftComboConfetti(count = 95) {
+  const particles = [];
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  for (let i = 0; i < count; i += 1) {
+    particles.push({
+      kind: "line",
+      x: Math.random() * width,
+      y: -20 - Math.random() * height * 0.18,
+      vx: (Math.random() - 0.5) * 5.8,
+      vy: 1.2 + Math.random() * 3.2,
+      gravity: 0.05 + Math.random() * 0.035,
+      size: 5 + Math.random() * 5.5,
+      rotation: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.18,
+      life: 1,
+      decay: 0.006 + Math.random() * 0.004,
+      color: randomCelebrationColor(),
+    });
+  }
+
+  return particles;
+}
+
+function makeSoftComboBursts(count = 22) {
+  const particles = [];
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  for (let i = 0; i < count; i += 1) {
+    const centerX = width * (0.12 + Math.random() * 0.76);
+    const centerY = height * (0.12 + Math.random() * 0.35);
+    const spokes = 10 + Math.floor(Math.random() * 8);
+
+    for (let s = 0; s < spokes; s += 1) {
+      const angle = (Math.PI * 2 * s) / spokes + Math.random() * 0.18;
+      const speed = 1.8 + Math.random() * 3.8;
+      particles.push({
+        kind: "burst",
+        x: centerX,
+        y: centerY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        gravity: 0.018 + Math.random() * 0.02,
+        size: 1.8 + Math.random() * 2.8,
+        rotation: angle,
+        spin: 0,
+        life: 1,
+        decay: 0.012 + Math.random() * 0.009,
+        color: randomCelebrationColor(),
+      });
+    }
+  }
+
+  return particles;
+}
+
+function animateSoftCombo() {
+  const canvas = elements.celebrationCanvas;
+  if (!canvas) {
+    return;
+  }
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  celebrationParticles.forEach((particle) => {
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+    particle.vy += particle.gravity;
+    particle.life -= particle.decay;
+    particle.rotation += particle.spin;
+
+    if (particle.kind === "line") {
+      ctx.save();
+      ctx.globalAlpha = Math.max(particle.life, 0);
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation);
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = particle.color;
+      ctx.fillStyle = particle.color;
+      ctx.fillRect(-particle.size * 0.5, -particle.size * 1.4, particle.size, particle.size * 2.8);
+      ctx.restore();
+    } else if (particle.kind === "burst") {
+      ctx.save();
+      ctx.globalAlpha = Math.max(particle.life, 0);
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation);
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = particle.color;
+      ctx.fillStyle = particle.color;
+      ctx.fillRect(-particle.size * 0.4, -particle.size * 2.8, particle.size * 0.8, particle.size * 5.6);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.globalAlpha = Math.max(particle.life, 0);
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = particle.color;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fillStyle = particle.color;
+      ctx.fill();
+      ctx.restore();
+    }
+  });
+
+  celebrationParticles = celebrationParticles.filter((particle) => particle.life > 0);
+
+  if (celebrationParticles.length > 0) {
+    celebrationFrame = requestAnimationFrame(animateSoftCombo);
+  } else {
+    celebrationFrame = null;
+  }
+}
+
+function playSoftCombo() {
+  stopSoftCombo();
+  resizeCelebrationCanvas();
+  triggerSoftComboFlash();
+  celebrationParticles = [
+    ...makeSoftComboSparkles(),
+    ...makeSoftComboConfetti(),
+    ...makeSoftComboBursts(),
+  ];
+  animateSoftCombo();
 }
 
 function safeStorageGet(key) {
