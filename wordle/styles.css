@@ -755,25 +755,6 @@ input {
 }
 
 
-#fx-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 50;
-}
-
-#fx-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 50;
-  filter: saturate(1.2) brightness(1.08);
-}
-
 .flash-overlay {
   animation: flashPulse 950ms cubic-bezier(0.18, 0.8, 0.2, 1);
 }
@@ -794,3 +775,71 @@ input {
   65% { transform: scale(0.99); }
   100% { transform: scale(1); }
 }
+
+
+body.win-flash::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483647;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 227, 122, 0.34), rgba(255, 227, 122, 0.10) 24%, rgba(255, 136, 189, 0.06) 42%, transparent 62%),
+    linear-gradient(180deg, rgba(255, 218, 95, 0.10), rgba(255, 255, 255, 0));
+  animation: winFlashPulse 900ms cubic-bezier(0.18, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes winFlashPulse {
+  0% { opacity: 0; }
+  14% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483646;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -12vh;
+  width: 10px;
+  height: 16px;
+  border-radius: 3px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: confettiFall, confettiSpin;
+  animation-timing-function: linear, ease-in-out;
+  animation-fill-mode: forwards, both;
+}
+
+@keyframes confettiFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -8vh, 0) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(var(--drift-x, 0px), 112vh, 0) rotate(var(--fall-rot, 360deg));
+  }
+}
+
+@keyframes confettiSpin {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+

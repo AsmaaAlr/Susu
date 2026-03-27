@@ -72,7 +72,7 @@ const elements = {
   resetButton: document.querySelector("#reset-button"),
   possiblePanel: document.querySelector("#possible-panel"),
   possiblePositions: document.querySelector("#possible-positions"),
-  celebrationCanvas: document.querySelector("#fx-canvas"),
+  confettiLayer: document.querySelector("#confetti-layer"),
 };
 
 init().catch((error) => {
@@ -504,7 +504,6 @@ function normalizeClueLetter(letter) {
 
 function bindEvents() {
   document.addEventListener("keydown", handlePhysicalKeyboard);
-  window.addEventListener("resize", resizeCelebrationCanvas);
   elements.board.addEventListener("click", handleBoardClick);
   elements.keyboard.addEventListener("click", handleKeyboardClick);
   elements.hintButton.addEventListener("click", revealHint);
@@ -881,234 +880,91 @@ function resetRound() {
 
 
 
-let celebrationFrame = null;
-let celebrationParticles = [];
-let celebrationFlashTimer = null;
-let celebrationBounceTimer = null;
 
-function resizeCelebrationCanvas() {
-  const canvas = elements.celebrationCanvas;
-  if (!canvas) {
-    return;
+
+
+
+
+
+let winFlashTimer = null;
+let confettiClearTimer = null;
+
+function ensureConfettiLayer() {
+  if (elements.confettiLayer && document.body.contains(elements.confettiLayer)) {
+    return elements.confettiLayer;
   }
 
-  const ratio = window.devicePixelRatio || 1;
-  canvas.width = Math.floor(window.innerWidth * ratio);
-  canvas.height = Math.floor(window.innerHeight * ratio);
-  canvas.style.width = `${window.innerWidth}px`;
-  canvas.style.height = `${window.innerHeight}px`;
+  let layer = document.getElementById("confetti-layer");
+  if (!layer) {
+    layer = document.createElement("div");
+    layer.id = "confetti-layer";
+    layer.className = "confetti-layer";
+    layer.setAttribute("aria-hidden", "true");
+    document.body.appendChild(layer);
+  } else if (layer.parentElement !== document.body) {
+    document.body.appendChild(layer);
+  }
 
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  elements.confettiLayer = layer;
+  return layer;
+}
+
+function clearConfetti() {
+  clearTimeout(confettiClearTimer);
+  const layer = ensureConfettiLayer();
+  if (layer) {
+    layer.innerHTML = "";
   }
 }
 
-function randomCelebrationColor() {
-  const palette = [
-    "#ffd84d",
-    "#ff7ab6",
-    "#7dd3fc",
-    "#8bffb7",
-    "#c79bff",
-    "#ffffff",
-    "#ff9f43"
-  ];
-  return palette[Math.floor(Math.random() * palette.length)];
+function spawnConfetti() {
+  const layer = ensureConfettiLayer();
+  if (!layer) {
+    return;
+  }
+
+  clearConfetti();
+
+  const colors = ["#ffd84d", "#ff7ab6", "#7dd3fc", "#8bffb7", "#c79bff", "#ffffff", "#ff9f43"];
+  const count = window.innerWidth < 700 ? 70 : 110;
+
+  for (let i = 0; i < count; i += 1) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = `${8 + Math.random() * 6}px`;
+    piece.style.height = `${12 + Math.random() * 10}px`;
+    piece.style.borderRadius = `${2 + Math.random() * 4}px`;
+    piece.style.setProperty("--drift-x", `${(Math.random() - 0.5) * 180}px`);
+    piece.style.setProperty("--fall-rot", `${(Math.random() - 0.5) * 900}deg`);
+    piece.style.animationDuration = `${2.3 + Math.random() * 1.2}s, ${0.5 + Math.random() * 0.5}s`;
+    piece.style.animationDelay = `${Math.random() * 0.22}s, 0s`;
+    piece.style.opacity = "0.98";
+    layer.appendChild(piece);
+  }
+
+  confettiClearTimer = setTimeout(() => {
+    if (layer) {
+      layer.innerHTML = "";
+    }
+  }, 4200);
 }
 
 function stopSoftCombo() {
-  if (celebrationFrame) {
-    cancelAnimationFrame(celebrationFrame);
-    celebrationFrame = null;
-  }
-
-  celebrationParticles = [];
-  clearTimeout(celebrationFlashTimer);
-  clearTimeout(celebrationBounceTimer);
-  document.body.classList.remove("flash-overlay");
-
-  const boardPanel = document.querySelector(".board-panel");
-  if (boardPanel) {
-    boardPanel.classList.remove("board-bounce");
-  }
-
-  const canvas = elements.celebrationCanvas;
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  }
-}
-
-function triggerSoftComboFlash() {
-  document.body.classList.remove("flash-overlay");
-  void document.body.offsetWidth;
-  document.body.classList.add("flash-overlay");
-  celebrationFlashTimer = setTimeout(() => {
-    document.body.classList.remove("flash-overlay");
-  }, 650);
-}
-
-function triggerSoftComboBounce() {
-  return;
-}
-
-function makeSoftComboSparkles(count = 180) {
-  const particles = [];
-  const width = window.innerWidth;
-
-  for (let i = 0; i < count; i += 1) {
-    particles.push({
-      kind: "dot",
-      x: Math.random() * width,
-      y: -10 - Math.random() * 260,
-      vx: (Math.random() - 0.5) * 2.2,
-      vy: 1.2 + Math.random() * 2.2,
-      gravity: 0.012,
-      size: 1.4 + Math.random() * 3.2,
-      rotation: 0,
-      spin: 0,
-      life: 1,
-      decay: 0.004 + Math.random() * 0.005,
-      color: randomCelebrationColor(),
-    });
-  }
-
-  return particles;
-}
-
-function makeSoftComboConfetti(count = 95) {
-  const particles = [];
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-
-  for (let i = 0; i < count; i += 1) {
-    particles.push({
-      kind: "line",
-      x: Math.random() * width,
-      y: -20 - Math.random() * height * 0.18,
-      vx: (Math.random() - 0.5) * 5.8,
-      vy: 1.2 + Math.random() * 3.2,
-      gravity: 0.05 + Math.random() * 0.035,
-      size: 5 + Math.random() * 5.5,
-      rotation: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 0.18,
-      life: 1,
-      decay: 0.006 + Math.random() * 0.004,
-      color: randomCelebrationColor(),
-    });
-  }
-
-  return particles;
-}
-
-function makeSoftComboBursts(count = 22) {
-  const particles = [];
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-
-  for (let i = 0; i < count; i += 1) {
-    const centerX = width * (0.12 + Math.random() * 0.76);
-    const centerY = height * (0.12 + Math.random() * 0.35);
-    const spokes = 10 + Math.floor(Math.random() * 8);
-
-    for (let s = 0; s < spokes; s += 1) {
-      const angle = (Math.PI * 2 * s) / spokes + Math.random() * 0.18;
-      const speed = 1.8 + Math.random() * 3.8;
-      particles.push({
-        kind: "burst",
-        x: centerX,
-        y: centerY,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        gravity: 0.018 + Math.random() * 0.02,
-        size: 1.8 + Math.random() * 2.8,
-        rotation: angle,
-        spin: 0,
-        life: 1,
-        decay: 0.012 + Math.random() * 0.009,
-        color: randomCelebrationColor(),
-      });
-    }
-  }
-
-  return particles;
-}
-
-function animateSoftCombo() {
-  const canvas = elements.celebrationCanvas;
-  if (!canvas) {
-    return;
-  }
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    return;
-  }
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  celebrationParticles.forEach((particle) => {
-    particle.x += particle.vx;
-    particle.y += particle.vy;
-    particle.vy += particle.gravity;
-    particle.life -= particle.decay;
-    particle.rotation += particle.spin;
-
-    if (particle.kind === "line") {
-      ctx.save();
-      ctx.globalAlpha = Math.max(particle.life, 0);
-      ctx.translate(particle.x, particle.y);
-      ctx.rotate(particle.rotation);
-      ctx.shadowBlur = 14;
-      ctx.shadowColor = particle.color;
-      ctx.fillStyle = particle.color;
-      ctx.fillRect(-particle.size * 0.5, -particle.size * 1.4, particle.size, particle.size * 2.8);
-      ctx.restore();
-    } else if (particle.kind === "burst") {
-      ctx.save();
-      ctx.globalAlpha = Math.max(particle.life, 0);
-      ctx.translate(particle.x, particle.y);
-      ctx.rotate(particle.rotation);
-      ctx.shadowBlur = 18;
-      ctx.shadowColor = particle.color;
-      ctx.fillStyle = particle.color;
-      ctx.fillRect(-particle.size * 0.4, -particle.size * 2.8, particle.size * 0.8, particle.size * 5.6);
-      ctx.restore();
-    } else {
-      ctx.save();
-      ctx.globalAlpha = Math.max(particle.life, 0);
-      ctx.shadowBlur = 16;
-      ctx.shadowColor = particle.color;
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-      ctx.fillStyle = particle.color;
-      ctx.fill();
-      ctx.restore();
-    }
-  });
-
-  celebrationParticles = celebrationParticles.filter((particle) => particle.life > 0);
-
-  if (celebrationParticles.length > 0) {
-    celebrationFrame = requestAnimationFrame(animateSoftCombo);
-  } else {
-    celebrationFrame = null;
-  }
+  clearTimeout(winFlashTimer);
+  document.body.classList.remove("win-flash");
+  clearConfetti();
 }
 
 function playSoftCombo() {
   stopSoftCombo();
-  resizeCelebrationCanvas();
-  triggerSoftComboFlash();
-  celebrationParticles = [
-    ...makeSoftComboSparkles(),
-    ...makeSoftComboConfetti(),
-    ...makeSoftComboBursts(),
-  ];
-  animateSoftCombo();
+  void document.body.offsetWidth;
+  document.body.classList.add("win-flash");
+  spawnConfetti();
+  winFlashTimer = setTimeout(() => {
+    document.body.classList.remove("win-flash");
+  }, 920);
 }
 
 function safeStorageGet(key) {
