@@ -18,11 +18,14 @@
           <h1 id="app-title">Wordle</h1>
         </div>
         <div class="hero-actions">
-          <button id="hint-button" class="ghost-button" type="button">
-            تلميح (2)
+          <button id="settings-button" class="ghost-button icon-button" type="button" aria-label="الإعدادات" title="الإعدادات">
+            <span class="settings-glyph" aria-hidden="true">⚙</span>
           </button>
           <button id="reset-button" class="ghost-button icon-button" type="button" aria-label="جولة جديدة" title="جولة جديدة">
             ↻
+          </button>
+          <button id="hint-button" class="ghost-button" type="button">
+            تلميح (2)
           </button>
         </div>
       </header>
@@ -66,10 +69,28 @@
         ة تبقى ة ولا تتحول إلى ه
       </p>
     </div>
-<script src="./word-data.js"></script>
-    <script src="./app.js"></script>
-  
-    <div id="confetti-layer" class="confetti-layer" aria-hidden="true"></div>
 
-</body>
+    <div id="settings-modal" class="settings-modal" hidden>
+      <div id="settings-backdrop" class="settings-backdrop"></div>
+      <section class="settings-card panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header class="settings-head">
+          <h2 id="settings-title">الإعدادات</h2>
+          <button id="settings-close" class="ghost-button icon-button" type="button" aria-label="إغلاق">✕</button>
+        </header>
+        <label class="settings-row" for="infinite-tries-toggle">
+          <span>محاولات لا نهائية</span>
+          <input id="infinite-tries-toggle" type="checkbox" />
+        </label>
+        <label class="settings-row" for="dark-mode-toggle">
+          <span>الوضع الداكن</span>
+          <input id="dark-mode-toggle" type="checkbox" />
+        </label>
+      </section>
+    </div>
+
+    <script src="./word-data.js"></script>
+    <script src="./app.js"></script>
+
+    <div id="confetti-layer" class="confetti-layer" aria-hidden="true"></div>
+  </body>
 </html>

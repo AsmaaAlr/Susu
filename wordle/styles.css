@@ -14,6 +14,18 @@
   --font-stack: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
+body[data-theme="dark"] {
+  --bg: #12161d;
+  --bg-accent: #1a202a;
+  --surface: rgba(24, 30, 40, 0.92);
+  --surface-strong: #1b2430;
+  --text: #f3f6fb;
+  --muted: #b3bcc9;
+  --border: rgba(182, 201, 230, 0.22);
+  --empty: #344050;
+  --shadow: 0 20px 50px rgba(4, 8, 14, 0.48);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -27,6 +39,13 @@ body {
     radial-gradient(circle at bottom left, rgba(62, 123, 79, 0.15), transparent 24%),
     linear-gradient(180deg, var(--bg) 0%, #f9f4ea 48%, #f3ecdf 100%);
   color: var(--text);
+}
+
+body[data-theme="dark"] {
+  background:
+    radial-gradient(circle at top right, rgba(96, 138, 202, 0.2), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(74, 157, 118, 0.16), transparent 24%),
+    linear-gradient(180deg, #0f141c 0%, #121922 48%, #0f151d 100%);
 }
 
 button,
@@ -97,6 +116,7 @@ input {
 
 .hero-actions {
   display: flex;
+  direction: ltr;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -130,6 +150,13 @@ input {
   line-height: 1;
 }
 
+.settings-glyph {
+  font-size: 1.32rem;
+  line-height: 1;
+  display: inline-block;
+  transform: translateY(-1px);
+}
+
 .secondary-button {
   background: var(--text);
   color: #fffaf1;
@@ -138,6 +165,13 @@ input {
 .ghost-button {
   background: rgba(255, 250, 241, 0.7);
   color: var(--text);
+}
+
+body[data-theme="dark"] .ghost-button,
+body[data-theme="dark"] .key {
+  background: rgba(31, 39, 51, 0.9);
+  color: var(--text);
+  border-color: rgba(182, 201, 230, 0.25);
 }
 
 .secondary-button:hover,
@@ -150,6 +184,110 @@ input {
   opacity: 0.45;
   cursor: not-allowed;
   transform: none;
+}
+
+.settings-modal[hidden] {
+  display: none;
+}
+
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+}
+
+.settings-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(26, 17, 11, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.settings-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(94vw, 420px);
+  padding: 18px;
+}
+
+.settings-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.settings-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.settings-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--correct);
+}
+
+body[data-theme="dark"] .panel {
+  border-color: rgba(182, 201, 230, 0.18);
+}
+
+body[data-theme="dark"] .tile:not(.correct):not(.present):not(.absent) {
+  background: rgba(24, 31, 42, 0.95);
+  border-color: #3a4658;
+}
+
+body[data-theme="dark"] .tile.filled {
+  border-color: #62748d;
+}
+
+body[data-theme="dark"] .tile.selectable-placeholder:not(.placeholder-tile) {
+  background: rgba(29, 37, 49, 0.95);
+}
+
+body[data-theme="dark"] .key:not(.correct):not(.present):not(.absent) {
+  background: rgba(31, 39, 51, 0.9);
+  color: var(--text);
+  border-color: rgba(182, 201, 230, 0.25);
+}
+
+body[data-theme="dark"] .possible-card {
+  background: rgba(26, 34, 45, 0.84);
+  border-color: rgba(182, 201, 230, 0.2);
+}
+
+body[data-theme="dark"] .possible-chip,
+body[data-theme="dark"] .possible-example {
+  background: rgba(38, 48, 63, 0.9);
+  border-color: rgba(182, 201, 230, 0.22);
+}
+
+body[data-theme="dark"] .possible-empty {
+  background: rgba(34, 43, 57, 0.72);
+  border-color: rgba(182, 201, 230, 0.22);
+}
+
+body[data-theme="dark"] .result-banner {
+  background: rgba(29, 37, 49, 0.86);
+}
+
+body[data-theme="dark"] .settings-backdrop {
+  background: rgba(5, 8, 13, 0.58);
+}
+
+body[data-theme="dark"] .toast {
+  background: rgba(10, 14, 20, 0.95);
 }
 
 .game-layout {
@@ -641,7 +779,7 @@ input {
     grid-template-columns: minmax(0, 1fr) minmax(500px, 560px);
     grid-template-areas: "board keyboard";
     gap: 20px;
-    align-items: start;
+    align-items: end;
     max-width: 1100px;
     margin: 0 auto;
   }
@@ -658,6 +796,7 @@ input {
 
   .keyboard-panel {
     grid-area: keyboard;
+    align-self: end;
   }
 
   .board-panel {
@@ -842,4 +981,3 @@ body.win-flash::before {
     filter: brightness(1);
   }
 }
-

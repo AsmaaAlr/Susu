@@ -31,7 +31,7 @@ const ENGLISH_TO_ARABIC_KEY_MAP = {
   "'": "ط",
   z: "ئ",
   x: "X",
-  c: "ؤ",
+  c: "و",
   v: "ر",
   n: "ى",
   m: "ة",
@@ -59,6 +59,8 @@ const state = {
   hintsUsed: 0,
   maxHints: 2,
   revealedHints: [],
+  infiniteTries: false,
+  darkMode: false,
 };
 
 const elements = {
@@ -68,6 +70,12 @@ const elements = {
   board: document.querySelector("#board"),
   keyboard: document.querySelector("#keyboard"),
   toast: document.querySelector("#toast"),
+  settingsButton: document.querySelector("#settings-button"),
+  settingsModal: document.querySelector("#settings-modal"),
+  settingsBackdrop: document.querySelector("#settings-backdrop"),
+  settingsClose: document.querySelector("#settings-close"),
+  infiniteTriesToggle: document.querySelector("#infinite-tries-toggle"),
+  darkModeToggle: document.querySelector("#dark-mode-toggle"),
   hintButton: document.querySelector("#hint-button"),
   resetButton: document.querySelector("#reset-button"),
   possiblePanel: document.querySelector("#possible-panel"),
@@ -96,6 +104,7 @@ async function init() {
   state.answers = sanitizeWords(answersData.words ?? []);
   state.allowedGuesses = new Set(sanitizeWords(allowedData.words ?? []));
   state.maxAttempts = Number(configData.maxAttempts) || 6;
+  hydratePreferences();
 
   state.answers.forEach((word) => state.allowedGuesses.add(word));
   state.normalizedAllowedGuesses = new Set(
@@ -234,7 +243,8 @@ function renderStaticInfo() {
 function renderBoard() {
   elements.board.textContent = "";
 
-  for (let rowIndex = 0; rowIndex < state.maxAttempts; rowIndex += 1) {
+  const rowsToRender = getBoardRowsToRender();
+  for (let rowIndex = 0; rowIndex < rowsToRender; rowIndex += 1) {
     const row = document.createElement("div");
     row.className = "board-row";
     row.style.gridTemplateColumns = `repeat(${state.wordLength}, minmax(0, 1fr))`;
@@ -311,7 +321,9 @@ function isSpecialArabicVariant(letter) {
 function renderKeyboard() {
   elements.keyboard.textContent = "";
 
-  const letterRows = state.keyboardRows.map((row) => row.filter((key) => key !== "ENTER" && key !== "⌫"));
+  const letterRows = state.keyboardRows.map((row) =>
+    row.filter((key) => key !== "ENTER" && key !== "⌫" && key !== "ؤ"),
+  );
   const rowsWithControls = [...letterRows, ["⌫", "X", "ENTER"]];
   rowsWithControls.forEach((rowValues) => {
     const row = document.createElement("div");
@@ -506,6 +518,11 @@ function bindEvents() {
   document.addEventListener("keydown", handlePhysicalKeyboard);
   elements.board.addEventListener("click", handleBoardClick);
   elements.keyboard.addEventListener("click", handleKeyboardClick);
+  elements.settingsButton?.addEventListener("click", openSettingsModal);
+  elements.settingsClose?.addEventListener("click", closeSettingsModal);
+  elements.settingsBackdrop?.addEventListener("click", closeSettingsModal);
+  elements.infiniteTriesToggle?.addEventListener("change", handleInfiniteTriesToggle);
+  elements.darkModeToggle?.addEventListener("change", handleDarkModeToggle);
   elements.hintButton.addEventListener("click", revealHint);
   elements.resetButton.addEventListener("click", resetRound);
 }
@@ -546,6 +563,11 @@ function handleKeyboardClick(event) {
 
 function handlePhysicalKeyboard(event) {
   if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+
+  if (event.key === "Escape") {
+    closeSettingsModal();
     return;
   }
 
@@ -674,7 +696,8 @@ function submitGuess() {
   state.currentGuess = "";
   state.selectedPlaceholderIndex = null;
   state.finished =
-    evaluation.every((item) => item === "correct") || state.attempts.length >= state.maxAttempts;
+    evaluation.every((item) => item === "correct") ||
+    (!state.infiniteTries && state.attempts.length >= state.maxAttempts);
 
   renderBoard();
   renderKeyboard();
@@ -728,6 +751,7 @@ function revealHint() {
   state.revealedHints.push(hint);
   state.hintsUsed += 1;
   renderHints();
+  renderPossibilityPanel();
   persistState();
   showToast(`تلميح: الحرف ${hint} موجود في الكلمة`);
 }
@@ -843,6 +867,55 @@ function renderResultBanner() {
   elements.resultBanner.textContent = won
     ? "ممتاز! تم حل الكلمة."
     : `انتهت المحاولات. الكلمة كانت: ${state.answer}`;
+}
+
+function getBoardRowsToRender() {
+  if (!state.infiniteTries) {
+    return state.maxAttempts;
+  }
+
+  const activeRow = state.finished ? state.attempts.length : state.attempts.length + 1;
+  return Math.max(state.maxAttempts, activeRow);
+}
+
+function openSettingsModal() {
+  if (!elements.settingsModal) {
+    return;
+  }
+  renderSettings();
+  elements.settingsModal.hidden = false;
+}
+
+function closeSettingsModal() {
+  if (!elements.settingsModal) {
+    return;
+  }
+  elements.settingsModal.hidden = true;
+}
+
+function handleInfiniteTriesToggle(event) {
+  state.infiniteTries = Boolean(event.target.checked);
+  persistPreferences();
+
+  const won = state.attempts.at(-1)?.evaluation?.every((item) => item === "correct");
+  if (state.infiniteTries && state.finished && !won) {
+    state.finished = false;
+  } else if (!state.infiniteTries && !state.finished && state.attempts.length >= state.maxAttempts && !won) {
+    state.finished = true;
+  }
+
+  renderBoard();
+  renderKeyboard();
+  renderHints();
+  renderResultBanner();
+  renderPossibilityPanel();
+  persistState();
+}
+
+function handleDarkModeToggle(event) {
+  state.darkMode = Boolean(event.target.checked);
+  applyTheme();
+  persistPreferences();
 }
 
 let toastTimer = null;
@@ -965,6 +1038,54 @@ function playSoftCombo() {
   winFlashTimer = setTimeout(() => {
     document.body.classList.remove("win-flash");
   }, 920);
+}
+
+function preferencesKey() {
+  return "wordl:preferences";
+}
+
+function hydratePreferences() {
+  const raw = safeStorageGet(preferencesKey());
+  if (!raw) {
+    applyTheme();
+    renderSettings();
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    state.infiniteTries = Boolean(parsed?.infiniteTries);
+    state.darkMode = Boolean(parsed?.darkMode);
+  } catch (error) {
+    console.warn("Ignoring invalid preferences", error);
+  }
+
+  applyTheme();
+  renderSettings();
+}
+
+function persistPreferences() {
+  safeStorageSet(
+    preferencesKey(),
+    JSON.stringify({
+      infiniteTries: state.infiniteTries,
+      darkMode: state.darkMode,
+    }),
+  );
+  renderSettings();
+}
+
+function renderSettings() {
+  if (elements.infiniteTriesToggle) {
+    elements.infiniteTriesToggle.checked = state.infiniteTries;
+  }
+  if (elements.darkModeToggle) {
+    elements.darkModeToggle.checked = state.darkMode;
+  }
+}
+
+function applyTheme() {
+  document.body.dataset.theme = state.darkMode ? "dark" : "light";
 }
 
 function safeStorageGet(key) {
