@@ -71,6 +71,7 @@ const elements = {
   keyboard: document.querySelector("#keyboard"),
   toast: document.querySelector("#toast"),
   settingsButton: document.querySelector("#settings-button"),
+  shareButton: document.querySelector("#share-button"),
   settingsModal: document.querySelector("#settings-modal"),
   settingsBackdrop: document.querySelector("#settings-backdrop"),
   settingsClose: document.querySelector("#settings-close"),
@@ -324,7 +325,8 @@ function renderKeyboard() {
   const letterRows = state.keyboardRows.map((row) =>
     row.filter((key) => key !== "ENTER" && key !== "⌫" && key !== "ؤ"),
   );
-  const rowsWithControls = [...letterRows, ["⌫", "X", "ENTER"]];
+  const controlRow = isIndex2Page() ? ["ROW_DELETE", "⌫", "X", "ENTER"] : ["⌫", "X", "ENTER"];
+  const rowsWithControls = [...letterRows, controlRow];
   rowsWithControls.forEach((rowValues) => {
     const row = document.createElement("div");
     row.className = "keyboard-row";
@@ -336,9 +338,17 @@ function renderKeyboard() {
       keyButton.className = "key";
       keyButton.dataset.key = rawKey;
       keyButton.textContent =
-        rawKey === "ENTER" ? "إدخال" : rawKey === "⌫" ? "حذف" : rawKey === "X" ? "X" : rawKey;
+        rawKey === "ENTER"
+          ? "إدخال"
+          : rawKey === "⌫"
+            ? "حذف"
+            : rawKey === "ROW_DELETE"
+              ? "حذف السطر"
+              : rawKey === "X"
+                ? "X"
+                : rawKey;
 
-      if (rawKey === "X" || rawKey === "ENTER" || rawKey === "⌫") {
+      if (rawKey === "X" || rawKey === "ENTER" || rawKey === "⌫" || rawKey === "ROW_DELETE") {
         keyButton.classList.add("special", "control-key");
       }
 
@@ -519,6 +529,7 @@ function bindEvents() {
   elements.board.addEventListener("click", handleBoardClick);
   elements.keyboard.addEventListener("click", handleKeyboardClick);
   elements.settingsButton?.addEventListener("click", openSettingsModal);
+  elements.shareButton?.addEventListener("click", shareToWhatsApp);
   elements.settingsClose?.addEventListener("click", closeSettingsModal);
   elements.settingsBackdrop?.addEventListener("click", closeSettingsModal);
   elements.infiniteTriesToggle?.addEventListener("change", handleInfiniteTriesToggle);
@@ -556,6 +567,10 @@ function handleKeyboardClick(event) {
   }
   if (key === "⌫") {
     removeLetter();
+    return;
+  }
+  if (key === "ROW_DELETE") {
+    clearCurrentRow();
     return;
   }
   addLetter(key);
@@ -649,6 +664,17 @@ function removeLetter() {
   const letters = Array.from(state.currentGuess);
   letters.pop();
   state.currentGuess = letters.join("");
+  state.selectedPlaceholderIndex = null;
+  renderBoard();
+  persistState();
+}
+
+function clearCurrentRow() {
+  if (!state.currentGuess || state.finished) {
+    return;
+  }
+
+  state.currentGuess = "";
   state.selectedPlaceholderIndex = null;
   renderBoard();
   persistState();
@@ -869,6 +895,206 @@ function renderResultBanner() {
     : `انتهت المحاولات. الكلمة كانت: ${state.answer}`;
 }
 
+async function shareToWhatsApp() {
+  const message = buildShareMessage();
+
+  try {
+    const file = await createShareImageFile();
+    if (file && navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      await navigator.share({
+        title: "وردل عربي",
+        text: message,
+        files: [file],
+      });
+      return;
+    }
+  } catch (error) {
+    console.warn("Image share failed, using text fallback", error);
+  }
+
+  const shareUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  window.open(shareUrl, "_blank", "noopener,noreferrer");
+}
+
+function buildShareMessage() {
+  const won = state.attempts.at(-1)?.evaluation?.every((item) => item === "correct");
+  const attemptGrid = buildShareGrid();
+  const headline = won
+    ? "ممتاز! لقد فزت"
+    : state.finished
+      ? "انتهت الجولة في وردل عربي."
+      : "تقدمي الحالي في وردل عربي:";
+
+  return [
+    headline,
+    attemptGrid ? "" : "لا توجد محاولات مكتملة بعد.",
+    attemptGrid,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function createShareImageFile() {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+
+  const shareRows = getShareRowsForImage();
+  const isDark = state.darkMode;
+  const width = 600;
+  const rowHeight = 68;
+  const boardTop = 150;
+  const height = boardTop + shareRows.length * rowHeight + 48;
+  canvas.width = width;
+  canvas.height = height;
+
+  const bgTop = isDark ? "#10151d" : "#f4efe4";
+  const bgBottom = isDark ? "#151b25" : "#f3ecdf";
+  const cardBg = isDark ? "rgba(24, 30, 40, 0.96)" : "rgba(255, 250, 241, 0.96)";
+  const textColor = isDark ? "#f3f6fb" : "#241912";
+  const mutedColor = isDark ? "#b3bcc9" : "#6f5d54";
+  const borderColor = isDark ? "rgba(182, 201, 230, 0.22)" : "rgba(62, 40, 26, 0.12)";
+  const emptyFill = isDark ? "#24303d" : "#fffaf1";
+  const emptyBorder = isDark ? "#415064" : "#d8c9b4";
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, bgTop);
+  gradient.addColorStop(1, bgBottom);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+
+  drawRoundedRect(ctx, 20, 20, width - 40, height - 40, 28, cardBg, borderColor);
+
+  ctx.fillStyle = textColor;
+  ctx.font = "700 34px Segoe UI, Tahoma, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("وردل عربي", width / 2, 70);
+
+  const won = state.attempts.at(-1)?.evaluation?.every((item) => item === "correct");
+  const headline = won
+    ? "ممتاز! لقد فزت"
+    : state.finished
+      ? "انتهت الجولة"
+      : "تقدمي الحالي";
+  ctx.fillStyle = won ? "#3e7b4f" : textColor;
+  ctx.font = "700 24px Segoe UI, Tahoma, sans-serif";
+  ctx.fillText(headline, width / 2, 108);
+
+  const cellSize = 56;
+  const rowGap = 8;
+  const colGap = 8;
+  const boardWidth = state.wordLength * cellSize + (state.wordLength - 1) * colGap;
+  const boardLeft = Math.floor((width - boardWidth) / 2);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "700 34px Segoe UI, Tahoma, sans-serif";
+
+  shareRows.forEach((row, rowIndex) => {
+    row.cells.forEach((cell, colIndex) => {
+      const visualIndex = row.cells.length - 1 - colIndex;
+      const x = boardLeft + visualIndex * (cellSize + colGap);
+      const y = boardTop + rowIndex * (cellSize + rowGap);
+      drawRoundedRect(
+        ctx,
+        x,
+        y,
+        cellSize,
+        cellSize,
+        18,
+        cell.fill,
+        cell.stroke,
+        2,
+      );
+      if (cell.text) {
+        ctx.fillStyle = cell.textColor;
+        ctx.fillText(cell.text, x + cellSize / 2, y + cellSize / 2 + 2);
+      }
+    });
+  });
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+  if (!blob) {
+    return null;
+  }
+
+  return new File([blob], "wordle-state.jpg", { type: "image/jpeg" });
+}
+
+function buildShareGrid() {
+  if (!state.attempts.length) {
+    return "";
+  }
+
+  return state.attempts
+    .map((attempt) =>
+      Array.from(attempt.evaluation)
+        .map((status) => {
+          if (status === "correct") return "🟩";
+          if (status === "present") return "🟨";
+          return "⬛";
+        })
+        .join(""),
+    )
+    .join("\n");
+}
+
+function getShareRowsForImage() {
+  const attempts = state.attempts.slice(-6);
+  const rows = attempts.map((attempt) => ({
+    cells: Array.from(attempt.evaluation).map((status, index) => ({
+      text: Array.from(attempt.guess)[index] ?? "",
+      fill:
+        status === "correct"
+          ? getComputedStyle(document.documentElement).getPropertyValue("--correct").trim() || "#3e7b4f"
+          : status === "present"
+            ? getComputedStyle(document.documentElement).getPropertyValue("--present").trim() || "#c78b2a"
+            : getComputedStyle(document.documentElement).getPropertyValue("--absent").trim() || "#8f8078",
+      stroke: "transparent",
+      textColor: "#ffffff",
+    })),
+  }));
+
+  if (state.currentGuess) {
+    const letters = Array.from(state.currentGuess);
+    rows.push({
+      cells: Array.from({ length: state.wordLength }, (_, index) => {
+        const letter = letters[index] ?? "";
+        return {
+          text: letter,
+          fill: letter ? "rgba(255,255,255,0.08)" : "transparent",
+          stroke: getComputedStyle(document.documentElement).getPropertyValue("--empty").trim() || "#d8c9b4",
+          textColor: getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#241912",
+        };
+      }),
+    });
+  }
+
+  return rows;
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke, strokeWidth = 0) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  if (stroke && strokeWidth) {
+    ctx.lineWidth = strokeWidth;
+    ctx.strokeStyle = stroke;
+    ctx.stroke();
+  }
+}
+
 function getBoardRowsToRender() {
   if (!state.infiniteTries) {
     return state.maxAttempts;
@@ -916,6 +1142,10 @@ function handleDarkModeToggle(event) {
   state.darkMode = Boolean(event.target.checked);
   applyTheme();
   persistPreferences();
+}
+
+function isIndex2Page() {
+  return document.body?.dataset?.page === "index2";
 }
 
 let toastTimer = null;
