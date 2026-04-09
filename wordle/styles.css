@@ -864,14 +864,15 @@ body[data-theme="dark"] .toast {
 
   .tile {
     width: min(12.5vw, 56px);
-    border-radius: 14px;
+    min-height: 44px;
+    border-radius: 12px;
   }
 
   .key {
     min-width: 0;
-    min-height: 52px;
+    min-height: 46px;
     padding: 0 4px;
-    border-radius: 14px;
+    border-radius: 12px;
     font-size: 0.95rem;
   }
 
@@ -883,7 +884,7 @@ body[data-theme="dark"] .toast {
     display: grid;
     grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
     min-width: 100%;
-    gap: 4px;
+    gap: 3px;
   }
 
   .finder-hero {
