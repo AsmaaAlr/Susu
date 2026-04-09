@@ -899,42 +899,20 @@ function renderResultBanner() {
 }
 
 async function shareToWhatsApp() {
-  const message = buildShareMessage();
-
   try {
     const file = await createShareImageFile();
     if (file && navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
       await navigator.share({
         title: "وردل عربي",
-        text: message,
         files: [file],
       });
       return;
     }
   } catch (error) {
-    console.warn("Image share failed, using text fallback", error);
+    console.warn("Image share failed", error);
   }
 
-  const shareUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-  window.open(shareUrl, "_blank", "noopener,noreferrer");
-}
-
-function buildShareMessage() {
-  const won = state.attempts.at(-1)?.evaluation?.every((item) => item === "correct");
-  const attemptGrid = buildShareGrid();
-  const headline = won
-    ? "ممتاز! لقد فزت"
-    : state.finished
-      ? "انتهت الجولة في وردل عربي."
-      : "تقدمي الحالي في وردل عربي:";
-
-  return [
-    headline,
-    attemptGrid ? "" : "لا توجد محاولات مكتملة بعد.",
-    attemptGrid,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  showToast("مشاركة الصورة غير مدعومة في هذا المتصفح.");
 }
 
 async function createShareImageFile() {
