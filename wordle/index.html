@@ -18,11 +18,20 @@
           <h1 id="app-title">Wordle</h1>
         </div>
         <div class="hero-actions">
-          <button id="hint-button" class="ghost-button" type="button">
-            تلميح (2)
+          <button id="settings-button" class="ghost-button icon-button" type="button" aria-label="الإعدادات" title="الإعدادات">
+            <span class="settings-glyph" aria-hidden="true">⚙</span>
+          </button>
+          <button id="share-button" class="ghost-button icon-button" type="button" aria-label="مشاركة على واتساب" title="مشاركة على واتساب">
+            <svg class="share-glyph" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+              <path d="M14 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M19 10H10.5A4.5 4.5 0 0 0 6 14.5V19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
           </button>
           <button id="reset-button" class="ghost-button icon-button" type="button" aria-label="جولة جديدة" title="جولة جديدة">
             ↻
+          </button>
+          <button id="hint-button" class="ghost-button" type="button">
+            تلميح (2)
           </button>
         </div>
       </header>
@@ -67,9 +76,23 @@
       </p>
     </div>
 
-    <canvas id="fx-canvas" aria-hidden="true"></canvas>
+    <div id="settings-modal" class="settings-modal" hidden>
+      <div id="settings-backdrop" class="settings-backdrop"></div>
+      <section class="settings-card panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header class="settings-head">
+          <h2 id="settings-title">الإعدادات</h2>
+          <button id="settings-close" class="ghost-button icon-button" type="button" aria-label="إغلاق">✕</button>
+        </header>
+        <label class="settings-row" for="dark-mode-toggle">
+          <span>الوضع الداكن</span>
+          <input id="dark-mode-toggle" type="checkbox" />
+        </label>
+      </section>
+    </div>
 
     <script src="./word-data.js"></script>
     <script src="./app.js"></script>
+
+    <div id="confetti-layer" class="confetti-layer" aria-hidden="true"></div>
   </body>
 </html>
