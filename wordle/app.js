@@ -325,7 +325,10 @@ function renderKeyboard() {
   const letterRows = state.keyboardRows.map((row) =>
     row.filter((key) => key !== "ENTER" && key !== "⌫" && key !== "ؤ"),
   );
-  const controlRow = isIndex2Page() ? ["ROW_DELETE", "⌫", "X", "ENTER"] : ["⌫", "X", "ENTER"];
+  if (letterRows.length) {
+    letterRows[letterRows.length - 1] = [...letterRows[letterRows.length - 1], "⌦"];
+  }
+  const controlRow = ["ROW_DELETE", "X", "ENTER"];
   const rowsWithControls = [...letterRows, controlRow];
   rowsWithControls.forEach((rowValues) => {
     const row = document.createElement("div");
@@ -340,15 +343,15 @@ function renderKeyboard() {
       keyButton.textContent =
         rawKey === "ENTER"
           ? "إدخال"
-          : rawKey === "⌫"
-            ? "حذف"
-            : rawKey === "ROW_DELETE"
+          : rawKey === "ROW_DELETE"
               ? "حذف السطر"
+              : rawKey === "⌫" || rawKey === "⌦"
+                ? "⌦"
               : rawKey === "X"
                 ? "X"
                 : rawKey;
 
-      if (rawKey === "X" || rawKey === "ENTER" || rawKey === "⌫" || rawKey === "ROW_DELETE") {
+      if (rawKey === "X" || rawKey === "ENTER" || rawKey === "⌦" || rawKey === "ROW_DELETE") {
         keyButton.classList.add("special", "control-key");
       }
 
@@ -565,7 +568,7 @@ function handleKeyboardClick(event) {
     submitGuess();
     return;
   }
-  if (key === "⌫") {
+  if (key === "⌫" || key === "⌦") {
     removeLetter();
     return;
   }
