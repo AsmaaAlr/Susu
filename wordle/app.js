@@ -926,8 +926,8 @@ async function createShareImageFile() {
   const isDark = state.darkMode;
   const width = 600;
   const rowHeight = 68;
-  const boardTop = 150;
-  const height = boardTop + shareRows.length * rowHeight + 48;
+  const boardTop = 84;
+  const height = boardTop + shareRows.length * rowHeight + 28;
   canvas.width = width;
   canvas.height = height;
 
@@ -947,21 +947,6 @@ async function createShareImageFile() {
   ctx.fillRect(0, 0, width, height);
 
   drawRoundedRect(ctx, 20, 20, width - 40, height - 40, 28, cardBg, borderColor);
-
-  ctx.fillStyle = textColor;
-  ctx.font = "700 34px Segoe UI, Tahoma, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("وردل عربي", width / 2, 70);
-
-  const won = state.attempts.at(-1)?.evaluation?.every((item) => item === "correct");
-  const headline = won
-    ? "ممتاز! لقد فزت"
-    : state.finished
-      ? "انتهت الجولة"
-      : "تقدمي الحالي";
-  ctx.fillStyle = won ? "#3e7b4f" : textColor;
-  ctx.font = "700 24px Segoe UI, Tahoma, sans-serif";
-  ctx.fillText(headline, width / 2, 108);
 
   const cellSize = 56;
   const rowGap = 8;
