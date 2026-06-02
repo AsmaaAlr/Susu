@@ -1122,10 +1122,10 @@
         x: (i * 83 + 41) % Math.max(1,W),
         y: 90 + ((i * 137 + 29) % Math.max(1,H - 210)),
         baseY: 90 + ((i * 137 + 29) % Math.max(1,H - 210)),
-        vx: (i % 2 ? 1 : -1) * (12 + (i % 4) * 5),
+        vx: (i % 2 ? 1 : -1) * (9 + (i % 4) * 4),
         phase: i * 1.7,
         flap: .8 + (i % 3) * .18,
-        scale: (W < 380 ? .72 : .88) + (i % 4) * .12,
+        scale: (W < 380 ? .86 : 1.02) + (i % 4) * .14,
         color1: palette[0],
         color2: palette[1],
         alpha: .58 + (i % 3) * .12
@@ -1161,60 +1161,134 @@
     ctx.save();
 
     for(const b of butterflies){
-      const wing = Math.sin(t * 9.5 * b.flap + b.phase);
-      const wingOpen = .72 + Math.abs(wing) * .42;
-      const angle = Math.sin(t * .9 + b.phase) * .18 + (b.vx < 0 ? Math.PI : 0);
+      const wingBeat = Math.sin(t * 10.5 * b.flap + b.phase);
+      const wingOpen = 0.66 + Math.abs(wingBeat) * 0.54;
+      const bodyTilt = Math.sin(t * 0.85 + b.phase) * 0.16 + (b.vx < 0 ? Math.PI : 0);
 
       ctx.save();
       ctx.translate(b.x, b.y);
-      ctx.rotate(angle);
+      ctx.rotate(bodyTilt);
       ctx.scale(b.scale, b.scale);
       ctx.globalAlpha = b.alpha;
 
-      // soft glow
-      ctx.fillStyle = "rgba(255,255,255,.22)";
+      // outer dreamy glow
+      const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 24);
+      glow.addColorStop(0, "rgba(255,255,255,.22)");
+      glow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.ellipse(0, 2, 20, 13, 0, 0, Math.PI * 2);
+      ctx.arc(0, 0, 24, 0, Math.PI * 2);
       ctx.fill();
 
-      // wings
-      const gradL = ctx.createRadialGradient(-8, -5, 2, -9, -7, 18);
-      gradL.addColorStop(0, b.color2);
-      gradL.addColorStop(1, b.color1);
+      // upper wings
+      const upperGrad = ctx.createLinearGradient(-14, -16, 14, 8);
+      upperGrad.addColorStop(0, b.color2);
+      upperGrad.addColorStop(1, b.color1);
 
-      ctx.fillStyle = gradL;
+      ctx.fillStyle = upperGrad;
+      ctx.save();
+      ctx.translate(-4.5, -4);
+      ctx.rotate(-0.36 - wingBeat * 0.12);
       ctx.beginPath();
-      ctx.ellipse(-8, -7, 9 * wingOpen, 13, -.58, 0, Math.PI * 2);
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(-16 * wingOpen, -16, -22 * wingOpen, -2, -10, 12);
+      ctx.bezierCurveTo(-2, 8, 1, 2, 0, 0);
+      ctx.closePath();
       ctx.fill();
 
+      ctx.fillStyle = "rgba(255,255,255,.25)";
       ctx.beginPath();
-      ctx.ellipse(8, -7, 9 * wingOpen, 13, .58, 0, Math.PI * 2);
+      ctx.ellipse(-8, -3, 4.2, 2, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = upperGrad;
+      ctx.save();
+      ctx.translate(4.5, -4);
+      ctx.rotate(0.36 + wingBeat * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(16 * wingOpen, -16, 22 * wingOpen, -2, 10, 12);
+      ctx.bezierCurveTo(2, 8, -1, 2, 0, 0);
+      ctx.closePath();
       ctx.fill();
 
-      ctx.globalAlpha = b.alpha * .9;
+      ctx.fillStyle = "rgba(255,255,255,.25)";
       ctx.beginPath();
-      ctx.ellipse(-7, 7, 7 * wingOpen, 9, .48, 0, Math.PI * 2);
+      ctx.ellipse(8, -3, 4.2, 2, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // lower wings
+      const lowerGrad = ctx.createLinearGradient(-10, 0, 10, 14);
+      lowerGrad.addColorStop(0, b.color1);
+      lowerGrad.addColorStop(1, b.color2);
+
+      ctx.fillStyle = lowerGrad;
+      ctx.save();
+      ctx.translate(-3.5, 4);
+      ctx.rotate(0.2 - wingBeat * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(-12 * wingOpen, 4, -12 * wingOpen, 14, -2, 15);
+      ctx.bezierCurveTo(3, 11, 3, 4, 0, 0);
+      ctx.closePath();
       ctx.fill();
 
+      ctx.fillStyle = "rgba(255,255,255,.18)";
       ctx.beginPath();
-      ctx.ellipse(7, 7, 7 * wingOpen, 9, -.48, 0, Math.PI * 2);
+      ctx.ellipse(-4, 7, 2.4, 1.4, -0.2, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = lowerGrad;
+      ctx.save();
+      ctx.translate(3.5, 4);
+      ctx.rotate(-0.2 + wingBeat * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(12 * wingOpen, 4, 12 * wingOpen, 14, 2, 15);
+      ctx.bezierCurveTo(-3, 11, -3, 4, 0, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,255,255,.18)";
+      ctx.beginPath();
+      ctx.ellipse(4, 7, 2.4, 1.4, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
 
       // body
-      ctx.globalAlpha = Math.min(1, b.alpha + .1);
-      ctx.fillStyle = "rgba(72,57,49,.78)";
+      const bodyGrad = ctx.createLinearGradient(0, -9, 0, 12);
+      bodyGrad.addColorStop(0, "#5b4339");
+      bodyGrad.addColorStop(1, "#2f2320");
+      ctx.fillStyle = bodyGrad;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 2.2, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 1, 2.5, 10.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // head
+      ctx.fillStyle = "#47352e";
+      ctx.beginPath();
+      ctx.arc(0, -8.2, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // tiny wing dots / details
+      ctx.fillStyle = "rgba(255,247,214,.7)";
+      ctx.beginPath(); ctx.arc(-8.2, -1.4, 1.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(8.2, -1.4, 1.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.45)";
+      ctx.beginPath(); ctx.arc(-4.2, 6.5, 1.05, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(4.2, 6.5, 1.05, 0, Math.PI * 2); ctx.fill();
+
       // antennae
-      ctx.strokeStyle = "rgba(72,57,49,.55)";
+      ctx.strokeStyle = "rgba(72,57,49,.60)";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(-1, -8);
-      ctx.quadraticCurveTo(-8, -15, -12, -12);
-      ctx.moveTo(1, -8);
-      ctx.quadraticCurveTo(8, -15, 12, -12);
+      ctx.moveTo(-0.6, -9.4);
+      ctx.quadraticCurveTo(-5.2, -14.8, -9.0, -12.8);
+      ctx.moveTo(0.6, -9.4);
+      ctx.quadraticCurveTo(5.2, -14.8, 9.0, -12.8);
       ctx.stroke();
 
       ctx.restore();
@@ -1439,6 +1513,28 @@
     ctx.fill();
 
     ctx.restore();
+  }
+
+
+  function mixColor(hex, amt){
+    if(!hex || hex[0] !== "#") return hex;
+    let c = hex.slice(1);
+    if(c.length === 3) c = c.split("").map(x => x + x).join("");
+    const num = parseInt(c, 16);
+    let r = (num >> 16) & 255;
+    let g = (num >> 8) & 255;
+    let b = num & 255;
+    if(amt >= 0){
+      r = Math.round(r + (255 - r) * amt);
+      g = Math.round(g + (255 - g) * amt);
+      b = Math.round(b + (255 - b) * amt);
+    }else{
+      const t = 1 + amt;
+      r = Math.round(r * t);
+      g = Math.round(g * t);
+      b = Math.round(b * t);
+    }
+    return `rgb(${r},${g},${b})`;
   }
 
   function drawFlowers(){
