@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>Bloom Tilt Maze</title>
+<style>
+  :root{
+    --cream:#fff8ea;
+    --pink:#ff77b7;
+    --rose:#ff4f9e;
+    --leaf:#5fad62;
+    --deep:#25713f;
+    --mint:#c9f7d7;
+    --gold:#ffd25e;
+    --ink:#294136;
+    --glass:rgba(255,255,255,.72);
+    --shadow:0 18px 55px rgba(61,90,64,.22);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 14% 18%, rgba(255,153,202,.45), transparent 28%),
+      radial-gradient(circle at 90% 20%, rgba(255,223,126,.50), transparent 30%),
+      radial-gradient(circle at 70% 92%, rgba(156,235,175,.55), transparent 34%),
+      linear-gradient(135deg,#fff7e8,#edfbe9 52%,#ffeaf4);
+    font-family: ui-rounded, "SF Pro Rounded", "Trebuchet MS", system-ui, sans-serif;
+    color:var(--ink);
+    touch-action:none;
+  }
+
+  #wrap{
+    position:fixed;
+    inset:0;
+    display:grid;
+    place-items:center;
+    padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  #phoneFrame{
+    position:relative;
+    width:min(100vw, 540px);
+    height:min(100dvh, 980px);
+    max-height:100dvh;
+    border-radius:34px;
+    overflow:hidden;
+    background:rgba(255,255,255,.46);
+    box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.75);
+    isolation:isolate;
+  }
+
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+    image-rendering:auto;
+  }
+
+  .hud{
+    position:absolute;
+    inset:12px 12px auto 12px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+    justify-content:space-between;
+    z-index:5;
+    pointer-events:none;
+  }
+
+  .pill{
+    pointer-events:auto;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    min-height:34px;
+    padding:7px 10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.68);
+    backdrop-filter: blur(12px);
+    box-shadow:0 9px 24px rgba(61,90,64,.14), inset 0 0 0 1px rgba(255,255,255,.7);
+    font-weight:800;
+    font-size:13px;
+    white-space:nowrap;
+  }
+
+  .pill small{
+    opacity:.72;
+    font-weight:900;
+    letter-spacing:.02em;
+  }
+
+  .btn{
+    border:0;
+    outline:0;
+    border-radius:999px;
+    padding:10px 14px;
+    background:linear-gradient(135deg,#ff75b8,#ff4d96);
+    color:#fff;
+    font-weight:950;
+    box-shadow:0 12px 25px rgba(255,79,158,.3);
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .btn:active{transform:translateY(1px) scale(.98)}
+  .btn.ghost{
+    background:rgba(255,255,255,.72);
+    color:var(--ink);
+    box-shadow:0 9px 22px rgba(61,90,64,.12);
+  }
+  .btn.gold{
+    background:linear-gradient(135deg,#ffe48c,#ffbb38);
+    color:#64400b;
+    box-shadow:0 12px 25px rgba(244,170,36,.24);
+  }
+
+  .panel{
+    position:absolute;
+    z-index:10;
+    inset:0;
+    display:grid;
+    place-items:center;
+    padding:20px;
+    background:
+      radial-gradient(circle at 20% 16%, rgba(255,153,202,.45), transparent 25%),
+      radial-gradient(circle at 80% 74%, rgba(255,220,116,.42), transparent 25%),
+      rgba(255,252,242,.18);
+    backdrop-filter: blur(10px);
+  }
+
+  .card{
+    width:min(440px, 94vw);
+    border-radius:30px;
+    padding:22px;
+    background:rgba(255,255,255,.78);
+    box-shadow:0 24px 70px rgba(61,90,64,.24), inset 0 0 0 1px rgba(255,255,255,.75);
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .card:before{
+    content:"";
+    position:absolute;
+    width:190px;height:190px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(255,118,181,.28), transparent 68%);
+    top:-70px;left:-60px;
+  }
+  .card:after{
+    content:"";
+    position:absolute;
+    width:210px;height:210px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(144,227,156,.38), transparent 70%);
+    right:-75px;bottom:-80px;
+  }
+  .card > *{position:relative;z-index:1}
+
+  h1{
+    margin:4px 0 8px;
+    font-size:clamp(32px, 8vw, 52px);
+    line-height:.92;
+    letter-spacing:-.06em;
+  }
+  .sub{
+    margin:0 auto 16px;
+    max-width:34ch;
+    color:#52665c;
+    font-weight:650;
+    line-height:1.35;
+  }
+
+  .duckHero{
+    width:122px;
+    height:92px;
+    margin:8px auto 12px;
+    position:relative;
+    filter:drop-shadow(0 12px 20px rgba(122,92,25,.20));
+  }
+  .duckHero .body{
+    position:absolute;
+    left:18px;bottom:8px;
+    width:82px;height:58px;
+    background:linear-gradient(#ffe681,#ffc845);
+    border-radius:55% 48% 45% 48%;
+  }
+  .duckHero .head{
+    position:absolute;
+    left:58px;top:10px;
+    width:48px;height:43px;
+    background:linear-gradient(#ffe98e,#ffd34f);
+    border-radius:50%;
+  }
+  .duckHero .bill{
+    position:absolute;
+    left:95px;top:31px;
+    width:28px;height:15px;
+    background:#ff9d37;
+    border-radius:60% 50% 50% 60%;
+  }
+  .duckHero .eye{
+    position:absolute;
+    left:87px;top:25px;
+    width:8px;height:8px;
+    background:#2b2b2b;
+    border-radius:50%;
+    box-shadow:2px -2px 0 0 rgba(255,255,255,.85) inset;
+  }
+  .duckHero .wing{
+    position:absolute;
+    left:37px;top:43px;
+    width:38px;height:26px;
+    background:rgba(255,185,48,.5);
+    border-radius:50%;
+    transform:rotate(-16deg);
+  }
+  .duckHero .flower{
+    position:absolute;
+    left:54px;top:2px;
+    width:22px;height:22px;
+    background:
+      radial-gradient(circle at 50% 50%, #ffd55c 0 24%, transparent 25%),
+      radial-gradient(circle at 30% 30%, #ff75b7 0 21%, transparent 22%),
+      radial-gradient(circle at 70% 30%, #ff75b7 0 21%, transparent 22%),
+      radial-gradient(circle at 30% 70%, #ff75b7 0 21%, transparent 22%),
+      radial-gradient(circle at 70% 70%, #ff75b7 0 21%, transparent 22%);
+  }
+
+  .row{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+
+  .tips{
+    margin:16px 0 0;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    text-align:left;
+  }
+  .tip{
+    background:rgba(255,248,234,.74);
+    border-radius:18px;
+    padding:10px;
+    font-size:12px;
+    font-weight:800;
+    color:#506459;
+  }
+
+  .bottomControls{
+    position:absolute;
+    z-index:6;
+    left:12px;
+    right:12px;
+    bottom:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:end;
+    gap:10px;
+    pointer-events:none;
+  }
+
+  .speedBox{
+    width:178px;
+    pointer-events:auto;
+    border-radius:22px;
+    padding:10px;
+    background:rgba(255,255,255,.68);
+    backdrop-filter: blur(12px);
+    box-shadow:0 12px 28px rgba(61,90,64,.14), inset 0 0 0 1px rgba(255,255,255,.7);
+  }
+  .speedBox label{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    font-weight:950;
+    margin-bottom:6px;
+  }
+  input[type=range]{
+    width:100%;
+    accent-color:#ff4f9e;
+  }
+
+  #joy{
+    width:118px;
+    height:118px;
+    border-radius:50%;
+    background:rgba(255,255,255,.54);
+    box-shadow:0 12px 28px rgba(61,90,64,.14), inset 0 0 0 1px rgba(255,255,255,.72);
+    pointer-events:auto;
+    position:relative;
+    touch-action:none;
+    display:none;
+  }
+  #joy.show{display:block}
+  #knob{
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#ff78bb,#ff4e9a);
+    position:absolute;
+    left:36px;top:36px;
+    box-shadow:0 10px 22px rgba(255,79,158,.27);
+  }
+
+  .toast{
+    position:absolute;
+    z-index:8;
+    left:50%;
+    bottom:156px;
+    transform:translateX(-50%) translateY(20px);
+    padding:10px 13px;
+    border-radius:999px;
+    background:rgba(41,65,54,.84);
+    color:white;
+    font-weight:850;
+    font-size:13px;
+    opacity:0;
+    pointer-events:none;
+    transition:.28s ease;
+    white-space:nowrap;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
+  .hidden{display:none!important}
+
+  @media (max-height:700px){
+    .tips{display:none}
+    .duckHero{transform:scale(.88); margin:0 auto 4px}
+    .card{padding:18px}
+  }
+
+  @media (min-width:700px){
+    #phoneFrame{height:min(92dvh, 940px)}
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="phoneFrame">
+    <canvas id="game"></canvas>
+
+    <div class="hud">
+      <div class="pill">🌼 <span id="score">0</span><small>/</small><span id="total">0</span></div>
+      <div class="pill">⏱️ <span id="time">0:00</span></div>
+      <button id="calibrateBtn" class="btn ghost" type="button">Calibrate</button>
+    </div>
+
+    <div class="bottomControls">
+      <div id="joy"><div id="knob"></div></div>
+      <div class="speedBox">
+        <label><span>Duck speed</span><span id="speedVal">1.00×</span></label>
+        <input id="speed" type="range" min="0.55" max="1.85" step="0.05" value="1" />
+      </div>
+    </div>
+
+    <div id="toast" class="toast">Tilt your phone to move</div>
+
+    <div id="startPanel" class="panel">
+      <div class="card">
+        <div class="duckHero" aria-hidden="true">
+          <div class="body"></div><div class="wing"></div><div class="head"></div><div class="bill"></div><div class="eye"></div><div class="flower"></div>
+        </div>
+        <h1>Bloom Tilt Maze</h1>
+        <p class="sub">Guide the tiny duck through a floral garden maze. Tilt your phone, collect flowers, and reach the golden gate.</p>
+        <div class="row">
+          <button id="playBtn" class="btn" type="button">Start with Tilt</button>
+          <button id="touchBtn" class="btn ghost" type="button">Touch Mode</button>
+        </div>
+        <div class="tips">
+          <div class="tip">📱 iPhone may ask permission after Start.</div>
+          <div class="tip">🕹️ Desktop works with arrow keys / WASD.</div>
+          <div class="tip">🌸 Collect flowers for a perfect garden score.</div>
+          <div class="tip">✨ Tap Calibrate while holding phone normally.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="winPanel" class="panel hidden">
+      <div class="card">
+        <div class="duckHero" aria-hidden="true">
+          <div class="body"></div><div class="wing"></div><div class="head"></div><div class="bill"></div><div class="eye"></div><div class="flower"></div>
+        </div>
+        <h1>You bloomed!</h1>
+        <p class="sub" id="winText">Garden complete.</p>
+        <div class="row">
+          <button id="nextBtn" class="btn gold" type="button">Next Garden</button>
+          <button id="againBtn" class="btn ghost" type="button">Replay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d", { alpha: false });
+
+  const scoreEl = document.getElementById("score");
+  const totalEl = document.getElementById("total");
+  const timeEl = document.getElementById("time");
+  const startPanel = document.getElementById("startPanel");
+  const winPanel = document.getElementById("winPanel");
+  const winText = document.getElementById("winText");
+  const playBtn = document.getElementById("playBtn");
+  const touchBtn = document.getElementById("touchBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const againBtn = document.getElementById("againBtn");
+  const calibrateBtn = document.getElementById("calibrateBtn");
+  const toast = document.getElementById("toast");
+  const speedInput = document.getElementById("speed");
+  const speedVal = document.getElementById("speedVal");
+  const joy = document.getElementById("joy");
+  const knob = document.getElementById("knob");
+
+  let W = 0, H = 0, DPR = 1, cell = 1, offsetX = 0, offsetY = 0;
+  let levelIndex = 0;
+  let mode = "keyboard";
+  let gyroReady = false;
+  let startedAt = 0;
+  let elapsed = 0;
+  let gameState = "menu";
+  let confetti = [];
+  let particles = [];
+  let keys = {};
+  let joyVector = {x:0,y:0};
+  let gyro = {x:0,y:0, baseX:0, baseY:0, lastGamma:0, lastBeta:0};
+  let cameraShake = 0;
+  let perfectMessage = "";
+
+  const levels = [
+    {
+      name: "Rose Courtyard",
+      map: [
+        "111111111111111",
+        "1S0000010000001",
+        "101110101011101",
+        "100010101000101",
+        "111010101110101",
+        "100010000010001",
+        "101111111010111",
+        "100000100010001",
+        "111110101111101",
+        "100010100000001",
+        "101010111011111",
+        "1000000010000E1",
+        "111111111111111"
+      ]
+    },
+    {
+      name: "Peony Puzzle",
+      map: [
+        "11111111111111111",
+        "1S000100000000001",
+        "10111010111111101",
+        "10000010000000101",
+        "11101111101110101",
+        "10001000001010101",
+        "10111011111010101",
+        "10100010000010001",
+        "10101110111111101",
+        "10001000100000001",
+        "11111010101111111",
+        "100000101000000E1",
+        "11111111111111111"
+      ]
+    },
+    {
+      name: "Golden Greenhouse",
+      map: [
+        "1111111111111111111",
+        "1S00000100000000001",
+        "1011111010111111101",
+        "1010000010100000101",
+        "1010111110101110101",
+        "1000100000101010001",
+        "1110101111101011111",
+        "1000101000001000001",
+        "1011101011111011101",
+        "1000001010000010101",
+        "1111111010111110101",
+        "1000000010000000001",
+        "1011111111111011111",
+        "10000000000010000E1",
+        "1111111111111111111"
+      ]
+    }
+  ];
+
+  let level, map, rows, cols;
+  let player = {x:0,y:0,r:10,vx:0,vy:0,dir:0,blush:0};
+  let flowers = [];
+  let exit = {x:0,y:0,w:0,h:0};
+
+  function showToast(text, ms=1500){
+    toast.textContent = text;
+    toast.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>toast.classList.remove("show"), ms);
+  }
+
+  function resize(){
+    const box = canvas.parentElement.getBoundingClientRect();
+    DPR = Math.min(window.devicePixelRatio || 1, 2.5);
+    W = Math.max(1, Math.floor(box.width));
+    H = Math.max(1, Math.floor(box.height));
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    fitMaze();
+  }
+
+  function fitMaze(){
+    if(!map) return;
+    const topPad = 70;
+    const bottomPad = 142;
+    cell = Math.floor(Math.min((W - 26) / cols, (H - topPad - bottomPad) / rows));
+    cell = Math.max(18, Math.min(cell, 42));
+    offsetX = Math.floor((W - cell * cols) / 2);
+    offsetY = Math.floor(topPad + ((H - topPad - bottomPad) - cell * rows) / 2);
+    player.r = Math.max(8, cell * 0.29);
+    if(level) placeEntities(true);
+  }
+
+  function loadLevel(idx){
+    levelIndex = (idx + levels.length) % levels.length;
+    level = levels[levelIndex];
+    map = level.map.map(r => r.split(""));
+    rows = map.length;
+    cols = map[0].length;
+    flowers = [];
+    particles = [];
+    confetti = [];
+    fitMaze();
+    startedAt = performance.now();
+    elapsed = 0;
+    gameState = "playing";
+    perfectMessage = "";
+  }
+
+  function hashRand(n){
+    const x = Math.sin(n * 999.123 + 7.13) * 10000;
+    return x - Math.floor(x);
+  }
+
+  function placeEntities(keepCollected=false){
+    const oldCollected = flowers.filter(f => f.collected).length;
+    flowers = [];
+    let seed = levelIndex * 1000 + 33;
+    for(let y=0;y<rows;y++){
+      for(let x=0;x<cols;x++){
+        const ch = map[y][x];
+        if(ch === "S"){
+          player.x = offsetX + x * cell + cell / 2;
+          player.y = offsetY + y * cell + cell / 2;
+          map[y][x] = "0";
+        }
+        if(ch === "E"){
+          exit.x = offsetX + x * cell + cell * .12;
+          exit.y = offsetY + y * cell + cell * .12;
+          exit.w = cell * .76;
+          exit.h = cell * .76;
+          map[y][x] = "0";
+        }
+      }
+    }
+
+    // Pretty but deterministic flower placements on open cells, avoiding start/exit.
+    const candidates = [];
+    for(let y=1;y<rows-1;y++){
+      for(let x=1;x<cols-1;x++){
+        if(map[y][x] === "0"){
+          const worldX = offsetX + x * cell + cell/2;
+          const worldY = offsetY + y * cell + cell/2;
+          const farFromPlayer = Math.hypot(worldX-player.x, worldY-player.y) > cell*2.4;
+          const farFromExit = Math.hypot(worldX-(exit.x+cell/2), worldY-(exit.y+cell/2)) > cell*1.6;
+          if(farFromPlayer && farFromExit) candidates.push({x,y});
+        }
+      }
+    }
+    candidates.sort((a,b)=>hashRand(seed + a.x*17+a.y*43) - hashRand(seed + b.x*17+b.y*43));
+    const amount = Math.min(9 + levelIndex*2, Math.max(6, Math.floor(candidates.length / 6)));
+    for(let i=0;i<amount && i<candidates.length;i++){
+      const c = candidates[i];
+      flowers.push({
+        x: offsetX + c.x * cell + cell / 2,
+        y: offsetY + c.y * cell + cell / 2,
+        r: Math.max(5, cell * .18),
+        phase: hashRand(seed+i)*Math.PI*2,
+        color: ["#ff62ac","#ffca4e","#b76cff","#ff8c6b","#79d86d"][i%5],
+        collected: keepCollected && i < oldCollected
+      });
+    }
+    totalEl.textContent = flowers.length;
+    updateHud();
+  }
+
+  function calibrate(){
+    gyro.baseX = gyro.lastGamma || 0;
+    gyro.baseY = gyro.lastBeta || 0;
+    showToast("Calibrated ✨");
+    if(navigator.vibrate) navigator.vibrate(20);
+  }
+
+  async function enableTilt(){
+    mode = "gyro";
+    joy.classList.remove("show");
+    let ok = true;
+    try{
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        const perm = await DeviceOrientationEvent.requestPermission();
+        ok = perm === "granted";
+      }
+    }catch(e){ ok = false; }
+
+    if(!ok){
+      mode = "touch";
+      joy.classList.add("show");
+      showToast("Tilt blocked — touch mode ready");
+      return false;
+    }
+
+    if(!gyroReady){
+      window.addEventListener("deviceorientation", e => {
+        gyroReady = true;
+        gyro.lastGamma = Number.isFinite(e.gamma) ? e.gamma : 0;
+        gyro.lastBeta = Number.isFinite(e.beta) ? e.beta : 0;
+
+        const gx = gyro.lastGamma - gyro.baseX;
+        const by = gyro.lastBeta - gyro.baseY;
+
+        // Clamp and soften. Positive beta usually tilts downward.
+        gyro.x = clamp(gx / 18, -1, 1);
+        gyro.y = clamp(by / 22, -1, 1);
+      }, {passive:true});
+    }
+    showToast("Tilt to move 🌿");
+    return true;
+  }
+
+  function setTouchMode(){
+    mode = "touch";
+    joy.classList.add("show");
+    showToast("Use the joystick 🕹️");
+  }
+
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+  function cellAt(px, py){
+    const x = Math.floor((px - offsetX) / cell);
+    const y = Math.floor((py - offsetY) / cell);
+    if(x < 0 || y < 0 || x >= cols || y >= rows) return "1";
+    return map[y][x];
+  }
+
+  function isWallAt(px,py){ return cellAt(px,py) === "1"; }
+
+  function movePlayer(dt){
+    const speedMult = parseFloat(speedInput.value);
+    const baseSpeed = cell * 4.05 * speedMult;
+    let ax = 0, ay = 0;
+
+    if(mode === "gyro"){
+      ax = gyro.x;
+      ay = gyro.y;
+    } else if(mode === "touch"){
+      ax = joyVector.x;
+      ay = joyVector.y;
+    }
+
+    if(keys.ArrowLeft || keys.a) ax -= 1;
+    if(keys.ArrowRight || keys.d) ax += 1;
+    if(keys.ArrowUp || keys.w) ay -= 1;
+    if(keys.ArrowDown || keys.s) ay += 1;
+
+    const len = Math.hypot(ax, ay);
+    if(len > 1){ ax /= len; ay /= len; }
+
+    player.vx = lerp(player.vx, ax * baseSpeed, 0.18);
+    player.vy = lerp(player.vy, ay * baseSpeed, 0.18);
+
+    const friction = 0.985;
+    player.vx *= friction;
+    player.vy *= friction;
+
+    if(Math.hypot(player.vx, player.vy) > 12){
+      player.dir = Math.atan2(player.vy, player.vx);
+    }
+
+    const nx = player.x + player.vx * dt;
+    const ny = player.y + player.vy * dt;
+
+    resolveMove(nx, player.y, "x");
+    resolveMove(player.x, ny, "y");
+  }
+
+  function resolveMove(nx, ny, axis){
+    const r = player.r * .82;
+    const checks = [
+      [nx-r, ny-r], [nx+r, ny-r], [nx-r, ny+r], [nx+r, ny+r],
+      [nx, ny-r], [nx, ny+r], [nx-r, ny], [nx+r, ny]
+    ];
+    const hit = checks.some(([x,y]) => isWallAt(x,y));
+    if(!hit){
+      player.x = nx; player.y = ny;
+    } else {
+      if(axis === "x") player.vx *= -0.18;
+      if(axis === "y") player.vy *= -0.18;
+      cameraShake = Math.min(4, cameraShake + 1.4);
+    }
+  }
+
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  function updateHud(){
+    const got = flowers.filter(f=>f.collected).length;
+    scoreEl.textContent = got;
+    if(gameState === "playing") elapsed = performance.now() - startedAt;
+    const sec = Math.floor(elapsed / 1000);
+    const m = Math.floor(sec / 60);
+    const s = String(sec % 60).padStart(2,"0");
+    timeEl.textContent = `${m}:${s}`;
+    speedVal.textContent = Number(speedInput.value).toFixed(2) + "×";
+  }
+
+  function update(dt){
+    if(gameState !== "playing") return;
+    movePlayer(dt);
+
+    for(const f of flowers){
+      if(!f.collected && Math.hypot(player.x-f.x, player.y-f.y) < player.r + f.r + 3){
+        f.collected = true;
+        flowerBurst(f.x, f.y, f.color);
+        if(navigator.vibrate) navigator.vibrate(18);
+        cameraShake += 1.8;
+      }
+    }
+
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 95 * dt;
+      p.rot += p.spin * dt;
+      if(p.life <= 0) particles.splice(i,1);
+    }
+
+    const inExit = player.x > exit.x && player.x < exit.x + exit.w && player.y > exit.y && player.y < exit.y + exit.h;
+    if(inExit){
+      win();
+    }
+
+    cameraShake *= .86;
+    updateHud();
+  }
+
+  function flowerBurst(x,y,color){
+    for(let i=0;i<18;i++){
+      const a = Math.PI*2*i/18 + Math.random()*0.26;
+      const sp = 60 + Math.random()*120;
+      particles.push({
+        x,y,
+        vx: Math.cos(a)*sp,
+        vy: Math.sin(a)*sp - 25,
+        life: .45 + Math.random()*.55,
+        maxLife: 1,
+        size: 3 + Math.random()*6,
+        color,
+        rot: Math.random()*Math.PI,
+        spin: -6 + Math.random()*12
+      });
+    }
+  }
+
+  function win(){
+    gameState = "win";
+    const got = flowers.filter(f=>f.collected).length;
+    const sec = Math.floor(elapsed/1000);
+    perfectMessage = got === flowers.length ? "Perfect garden score 🌸" : `Collected ${got}/${flowers.length} flowers 🌼`;
+    winText.textContent = `${perfectMessage} · Time ${Math.floor(sec/60)}:${String(sec%60).padStart(2,"0")}`;
+    createConfetti();
+    setTimeout(()=>winPanel.classList.remove("hidden"), 520);
+    if(navigator.vibrate) navigator.vibrate([35,50,35]);
+  }
+
+  function createConfetti(){
+    confetti = [];
+    const colors = ["#ff4f9e","#ffd25e","#78d67c","#8b6cff","#ff8d5d","#ffffff"];
+    for(let i=0;i<130;i++){
+      confetti.push({
+        x: Math.random()*W,
+        y: -20 - Math.random()*H*.55,
+        vx: -40 + Math.random()*80,
+        vy: 110 + Math.random()*210,
+        s: 4 + Math.random()*8,
+        r: Math.random()*Math.PI,
+        spin: -8 + Math.random()*16,
+        color: colors[i%colors.length]
+      });
+    }
+  }
+
+  function draw(){
+    const shakeX = (Math.random()-.5)*cameraShake;
+    const shakeY = (Math.random()-.5)*cameraShake;
+    ctx.save();
+    ctx.translate(shakeX,shakeY);
+
+    drawBackground();
+    drawMaze();
+    drawExit();
+    drawFlowers();
+    drawDuck();
+    drawParticles();
+    ctx.restore();
+    drawConfetti();
+    requestAnimationFrame(draw);
+  }
+
+  function drawBackground(){
+    const g = ctx.createLinearGradient(0,0,W,H);
+    g.addColorStop(0,"#fff7e7");
+    g.addColorStop(.48,"#eaf9e9");
+    g.addColorStop(1,"#ffe7f2");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    // subtle dotted garden texture
+    ctx.globalAlpha = .48;
+    for(let i=0;i<90;i++){
+      const x = (i*73 + levelIndex*47) % W;
+      const y = (i*131 + levelIndex*91) % H;
+      const r = 1.2 + (i%5)*.36;
+      ctx.fillStyle = i%3 === 0 ? "#ffd2e7" : i%3 === 1 ? "#d9f3d9" : "#ffe8a7";
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    drawBigDecorFlower(W*.12,H*.88,22,"#ff8fc7");
+    drawBigDecorFlower(W*.88,H*.16,20,"#ffd36f");
+    drawBigDecorFlower(W*.77,H*.90,16,"#9fe38f");
+    drawTitleRibbon();
+  }
+
+  function drawTitleRibbon(){
+    ctx.save();
+    ctx.globalAlpha = .92;
+    roundRect(18, 16, W-36, 44, 22);
+    ctx.fillStyle = "rgba(255,255,255,.42)";
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#294136";
+    ctx.font = "900 14px ui-rounded, system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(level ? level.name : "Bloom Tilt Maze", W/2, 43);
+    ctx.restore();
+  }
+
+  function drawBigDecorFlower(x,y,r,color){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.globalAlpha=.26;
+    for(let i=0;i<8;i++){
+      ctx.rotate(Math.PI/4);
+      ctx.fillStyle=color;
+      ctx.beginPath();
+      ctx.ellipse(0,-r*.85,r*.36,r*.75,0,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.fillStyle="#ffd25e";
+    ctx.beginPath(); ctx.arc(0,0,r*.32,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawMaze(){
+    if(!map) return;
+
+    // path base
+    roundRect(offsetX-8, offsetY-8, cols*cell+16, rows*cell+16, 24);
+    ctx.fillStyle = "rgba(255,255,255,.50)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.74)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    for(let y=0;y<rows;y++){
+      for(let x=0;x<cols;x++){
+        const px = offsetX + x*cell;
+        const py = offsetY + y*cell;
+        if(map[y][x] === "1"){
+          drawHedge(px,py,cell,cell,x,y);
+        } else {
+          drawPathTile(px,py,cell,cell,x,y);
+        }
+      }
+    }
+  }
+
+  function drawPathTile(x,y,w,h,cx,cy){
+    const hue = (cx + cy + levelIndex) % 2;
+    ctx.fillStyle = hue ? "rgba(255,250,224,.82)" : "rgba(248,242,205,.80)";
+    ctx.fillRect(x,y,w,h);
+
+    if((cx*13+cy*7+levelIndex)%9===0){
+      ctx.fillStyle = "rgba(116,177,91,.22)";
+      ctx.beginPath();
+      ctx.ellipse(x+w*.28,y+h*.72,w*.16,h*.07,-.7,0,Math.PI*2);
+      ctx.ellipse(x+w*.42,y+h*.68,w*.13,h*.055,.6,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  function drawHedge(x,y,w,h,cx,cy){
+    const grd = ctx.createLinearGradient(x,y,x,y+h);
+    grd.addColorStop(0,"#76c970");
+    grd.addColorStop(.52,"#4eaa59");
+    grd.addColorStop(1,"#2f8248");
+    ctx.fillStyle = grd;
+    roundRect(x+1,y+1,w-2,h-2, Math.max(6,w*.22));
+    ctx.fill();
+
+    // Leaf shine blobs
+    ctx.globalAlpha = .48;
+    ctx.fillStyle = "#a9ee9d";
+    for(let i=0;i<3;i++){
+      const rx = x + ((cx*19+cy*7+i*11)%100)/100*w;
+      const ry = y + ((cy*23+cx*5+i*17)%100)/100*h;
+      ctx.beginPath();
+      ctx.ellipse(rx, ry, w*.13, h*.055, (i+cx)*.8, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Flower sprinkles
+    if((cx*31+cy*11+levelIndex)%5===0){
+      const fx = x + w*.72, fy = y + h*.25;
+      drawMiniFlower(fx,fy,Math.max(3,w*.10), ["#ff77b7","#ffe066","#c08cff"][(cx+cy)%3]);
+    }
+  }
+
+  function drawExit(){
+    ctx.save();
+    const t = performance.now()/1000;
+    ctx.translate(exit.x+exit.w/2, exit.y+exit.h/2);
+    const pulse = 1 + Math.sin(t*4)*.04;
+    ctx.scale(pulse,pulse);
+    const r = Math.min(exit.w,exit.h)/2;
+    const g = ctx.createRadialGradient(0,0,r*.1,0,0,r);
+    g.addColorStop(0,"#fff6b7");
+    g.addColorStop(.52,"#ffd05b");
+    g.addColorStop(1,"rgba(255,174,55,.1)");
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(0,0,r*.92,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.lineWidth=3;
+    ctx.strokeStyle="rgba(139,92,22,.5)";
+    ctx.beginPath();
+    ctx.arc(0,0,r*.62,Math.PI*.1,Math.PI*1.9);
+    ctx.stroke();
+
+    ctx.fillStyle="#8f641c";
+    ctx.font=`900 ${Math.max(14,cell*.36)}px ui-rounded, system-ui`;
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText("GATE",0,1);
+    ctx.restore();
+  }
+
+  function drawFlowers(){
+    const t = performance.now()/1000;
+    for(const f of flowers){
+      if(f.collected) continue;
+      const bob = Math.sin(t*3 + f.phase)*2;
+      drawMiniFlower(f.x, f.y + bob, f.r, f.color, true);
+    }
+  }
+
+  function drawMiniFlower(x,y,r,color,glow=false){
+    ctx.save();
+    ctx.translate(x,y);
+    if(glow){
+      ctx.globalAlpha=.18;
+      ctx.fillStyle=color;
+      ctx.beginPath(); ctx.arc(0,0,r*2.3,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+    for(let i=0;i<6;i++){
+      ctx.rotate(Math.PI/3);
+      ctx.fillStyle=color;
+      ctx.beginPath();
+      ctx.ellipse(0,-r*.82,r*.42,r*.78,0,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.fillStyle="#ffe36d";
+    ctx.beginPath(); ctx.arc(0,0,r*.42,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDuck(){
+    const x = player.x, y = player.y;
+    const r = player.r;
+    const t = performance.now()/1000;
+    const walk = Math.sin(t*12) * clamp(Math.hypot(player.vx,player.vy)/180,0,1);
+    const angle = player.dir;
+
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(angle);
+    ctx.scale(1 + walk*.03, 1 - walk*.02);
+
+    // shadow
+    ctx.save();
+    ctx.rotate(-angle);
+    ctx.globalAlpha=.24;
+    ctx.fillStyle="#415644";
+    ctx.beginPath(); ctx.ellipse(0,r*.78,r*1.22,r*.38,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // body
+    const bodyGrad = ctx.createLinearGradient(-r,-r,r,r);
+    bodyGrad.addColorStop(0,"#fff09a");
+    bodyGrad.addColorStop(.65,"#ffd352");
+    bodyGrad.addColorStop(1,"#ffc13b");
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.ellipse(-r*.08,0,r*1.05,r*.82,0,0,Math.PI*2);
+    ctx.fill();
+
+    // wing
+    ctx.fillStyle="rgba(231,154,34,.34)";
+    ctx.beginPath();
+    ctx.ellipse(-r*.34,r*.08,r*.46,r*.27,-.25,0,Math.PI*2);
+    ctx.fill();
+
+    // head
+    ctx.fillStyle="#ffe27a";
+    ctx.beginPath();
+    ctx.arc(r*.55,-r*.45,r*.56,0,Math.PI*2);
+    ctx.fill();
+
+    // beak
+    ctx.fillStyle="#ff9d38";
+    ctx.beginPath();
+    ctx.ellipse(r*1.12,-r*.40,r*.42,r*.21,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="rgba(154,74,18,.18)";
+    ctx.fillRect(r*.98,-r*.40,r*.31,1.4);
+
+    // eye
+    ctx.fillStyle="#26332b";
+    ctx.beginPath();
+    ctx.arc(r*.70,-r*.60,r*.105,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#fff";
+    ctx.beginPath();
+    ctx.arc(r*.74,-r*.64,r*.036,0,Math.PI*2);
+    ctx.fill();
+
+    // blush
+    ctx.fillStyle="rgba(255,111,157,.35)";
+    ctx.beginPath();
+    ctx.ellipse(r*.63,-r*.27,r*.12,r*.06,0,0,Math.PI*2);
+    ctx.fill();
+
+    // feet
+    ctx.fillStyle="#f28b28";
+    ctx.beginPath();
+    ctx.ellipse(-r*.32,r*.78,r*.22,r*.09,walk*.55,0,Math.PI*2);
+    ctx.ellipse(r*.28,r*.78,r*.22,r*.09,-walk*.55,0,Math.PI*2);
+    ctx.fill();
+
+    // tiny head flower
+    ctx.save();
+    ctx.translate(r*.25,-r*1.02);
+    ctx.rotate(-angle + Math.sin(t*3)*.08);
+    drawMiniFlower(0,0,r*.22,"#ff6eb1",false);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  function drawParticles(){
+    for(const p of particles){
+      const a = clamp(p.life / p.maxLife, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, p.life * 2);
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle=p.color;
+      ctx.beginPath();
+      ctx.ellipse(0,0,p.size*.65,p.size*.26,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawConfetti(){
+    if(confetti.length === 0) return;
+    ctx.save();
+    for(let i=confetti.length-1;i>=0;i--){
+      const c = confetti[i];
+      c.x += c.vx/60;
+      c.y += c.vy/60;
+      c.r += c.spin/60;
+      c.vy += 2.2;
+      ctx.save();
+      ctx.translate(c.x,c.y);
+      ctx.rotate(c.r);
+      ctx.fillStyle=c.color;
+      ctx.globalAlpha = clamp(1 - (c.y-H*.72)/(H*.5), .12, 1);
+      roundRect(-c.s/2,-c.s/3,c.s,c.s*.66,2);
+      ctx.fill();
+      ctx.restore();
+      if(c.y > H+60) confetti.splice(i,1);
+    }
+    ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r){
+    r = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function startGame(useTilt){
+    startPanel.classList.add("hidden");
+    winPanel.classList.add("hidden");
+    loadLevel(levelIndex);
+    if(useTilt) {
+      enableTilt().then(ok => {
+        if(ok) setTimeout(calibrate, 350);
+      });
+    } else {
+      setTouchMode();
+    }
+  }
+
+  // Touch joystick
+  let joyActive = false;
+  function joyPoint(e){
+    const touch = e.touches ? e.touches[0] : e;
+    const rect = joy.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    let dx = touch.clientX - cx;
+    let dy = touch.clientY - cy;
+    const max = rect.width*.36;
+    const len = Math.hypot(dx,dy);
+    if(len > max){ dx = dx/len*max; dy = dy/len*max; }
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+    joyVector.x = dx / max;
+    joyVector.y = dy / max;
+  }
+  function joyEnd(){
+    joyActive = false;
+    knob.style.transform = "translate(0,0)";
+    joyVector.x = 0; joyVector.y = 0;
+  }
+  joy.addEventListener("pointerdown", e => { joyActive=true; joy.setPointerCapture(e.pointerId); joyPoint(e); });
+  joy.addEventListener("pointermove", e => { if(joyActive) joyPoint(e); });
+  joy.addEventListener("pointerup", joyEnd);
+  joy.addEventListener("pointercancel", joyEnd);
+
+  window.addEventListener("keydown", e => {
+    keys[e.key] = true;
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
+    if(gameState === "menu" && e.key === "Enter") startGame(false);
+  }, {passive:false});
+  window.addEventListener("keyup", e => keys[e.key] = false);
+
+  playBtn.addEventListener("click", () => startGame(true));
+  touchBtn.addEventListener("click", () => startGame(false));
+  calibrateBtn.addEventListener("click", calibrate);
+  nextBtn.addEventListener("click", () => { winPanel.classList.add("hidden"); loadLevel(levelIndex+1); });
+  againBtn.addEventListener("click", () => { winPanel.classList.add("hidden"); loadLevel(levelIndex); });
+  speedInput.addEventListener("input", updateHud);
+
+  // Prevent mobile page gestures from stealing the game.
+  document.addEventListener("touchmove", e => e.preventDefault(), {passive:false});
+
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(.033, (now-last)/1000);
+    last = now;
+    update(dt);
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", () => setTimeout(resize, 180));
+
+  resize();
+  draw();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
