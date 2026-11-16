@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#09090b" />
+  <meta name="description" content="Private client-side AI passport & ID photo background remover, resizer, and print sheet generator." />
+  <title>PulseID — Passport &amp; ID Photo Studio</title>
+  <link id="dynamic-manifest" rel="manifest" />
+  <link id="dynamic-icon" rel="icon" type="image/svg+xml" />
+  <link id="apple-touch-icon" rel="apple-touch-icon" />
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: #121215;
+      --surface-2: #18181c;
+      --border: rgba(255, 255, 255, 0.09);
+      --text: #fafafa;
+      --muted: #8e8e98;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.16);
+      --green: #10b981;
+      --amber: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f4f5;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --border: rgba(0, 0, 0, 0.09);
+      --text: #09090b;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.12);
+      --green: #059669;
+      --amber: #d97706;
+      --danger: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.92rem;
+      display: grid;
+      place-items: center;
+      letter-spacing: -0.02em;
+    }
+
+    .brand h1 {
+      font-size: 1.08rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .privacy-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .dot.busy { background: var(--amber); animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+
+    .btn-icon:hover { background: var(--surface-2); }
+
+    .btn-install {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Main Workspace Layout */
+    .workspace {
+      flex: 1;
+      width: 100%;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 370px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+    }
+
+    /* Left Stage / Canvas Area */
+    .stage-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .stage-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .stage-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stage-meta strong {
+      color: var(--text);
+    }
+
+    .stage-toggles {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip-btn {
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .chip-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* Dropzone & Canvas Frame */
+    .canvas-viewport {
+      position: relative;
+      width: 100%;
+      min-height: 430px;
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(45deg, rgba(128,128,128,0.08) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(128,128,128,0.08) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(128,128,128,0.08) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(128,128,128,0.08) 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      border: 1.5px dashed var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 20px;
+    }
+
+    .canvas-viewport.drag-active {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+    }
+
+    .upload-prompt {
+      text-align: center;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .upload-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      font-size: 1.6rem;
+    }
+
+    .upload-prompt h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .upload-prompt p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 11px;
+      padding: 10px 18px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: opacity 0.15s ease;
+    }
+
+    .btn-primary:hover:not(:disabled) { opacity: 0.92; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 9px 14px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-secondary:hover:not(:disabled) { border-color: var(--accent); }
+    .btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    #preview-canvas {
+      max-width: 100%;
+      max-height: 440px;
+      border-radius: 4px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #preview-canvas:active { cursor: grabbing; }
+    #preview-canvas.brush-mode { cursor: crosshair; }
+
+    /* Loading Overlay on Stage */
+    .ai-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(9, 9, 11, 0.78);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 15;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-bar-wrap {
+      width: 220px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.2s ease;
+    }
+
+    /* Right Controls Panel */
+    .controls-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .control-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .control-section:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .section-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    select, input[type="number"] {
+      width: 100%;
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      outline: none;
+      font-family: inherit;
+    }
+
+    select:focus, input[type="number"]:focus {
+      border-color: var(--accent);
+    }
+
+    .custom-dim-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 78px;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    /* Background Swatches */
+    .swatch-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s ease, border-color 0.15s ease;
+    }
+
+    .swatch:hover { transform: scale(1.06); }
+    .swatch.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+
+    .swatch.transparent-bg {
+      background-image:
+        linear-gradient(45deg, #888 25%, transparent 25%),
+        linear-gradient(-45deg, #888 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #888 75%),
+        linear-gradient(-45deg, transparent 75%, #888 75%);
+      background-size: 10px 10px;
+      background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+    }
+
+    .color-picker-wrap {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .color-picker-wrap input[type="color"] {
+      position: absolute;
+      inset: -6px;
+      width: 48px;
+      height: 48px;
+      border: none;
+      cursor: pointer;
+      background: none;
+    }
+
+    /* Sliders */
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slider-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .slider-top span:last-child {
+      color: var(--text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Brush Touch-up Bar */
+    .brush-bar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* Export Buttons */
+    .export-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .export-full {
+      grid-column: 1 / -1;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">ID</div>
+      <div>
+        <h1>PulseID</h1>
+      </div>
+      <span class="privacy-pill" title="All AI processing runs 100% locally in your browser">
+        <span id="model-dot" class="dot"></span>
+        <span id="model-status">100% On-Device</span>
+      </span>
+    </div>
+    <div class="header-actions">
+      <button id="install-btn" class="btn-install hidden">Install App</button>
+      <button id="theme-btn" class="btn-icon" title="Toggle Theme">☀️</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- Left Canvas Preview -->
+    <section class="stage-card">
+      <div class="stage-topbar">
+        <div class="stage-meta" id="dim-readout">
+          Output: <strong>35 × 45 mm</strong> (413 × 531 px @ 300 DPI)
+        </div>
+        <div class="stage-toggles">
+          <button id="toggle-guide-btn" class="chip-btn active" title="Show ICAO head & eye alignment guides">ID Guide</button>
+          <button id="toggle-orig-btn" class="chip-btn" title="Hold or click to compare original">Compare</button>
+          <button id="new-photo-btn" class="chip-btn">New Photo</button>
+        </div>
+      </div>
+
+      <div id="dropzone" class="canvas-viewport">
+        <input id="file-input" type="file" accept="image/*" class="hidden" />
+
+        <div id="upload-prompt" class="upload-prompt">
+          <div class="upload-icon">🪪</div>
+          <h2>Upload Portrait Photo</h2>
+          <p>Drop a photo here, paste from clipboard (Ctrl+V), or choose a file. AI removes the background privately on your device.</p>
+          <button type="button" class="btn-primary">Choose Portrait Photo</button>
+        </div>
+
+        <canvas id="preview-canvas" class="hidden"></canvas>
+
+        <div id="ai-overlay" class="ai-overlay hidden">
+          <div class="spinner"></div>
+          <div id="ai-status-text" style="font-weight: 700; font-size: 0.92rem;">Loading AI Portrait Model...</div>
+          <div class="progress-bar-wrap">
+            <div id="ai-progress-fill" class="progress-bar-fill"></div>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--muted); max-width: 260px;">
+            First run downloads the ~25 MB portrait segmentation model and caches it offline.
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: var(--muted); flex-wrap: wrap; gap: 6px;">
+        <span>Tip: Drag the portrait to center your face inside the oval guide.</span>
+        <button id="reset-crop-btn" class="chip-btn" style="padding: 3px 8px;">Reset Framing</button>
+      </div>
+    </section>
+
+    <!-- Right Controls -->
+    <aside class="controls-card">
+      <!-- 1. Official Size Preset -->
+      <div class="control-section">
+        <div class="section-label">
+          <span>1. Document / ID Size</span>
+          <span>300 DPI</span>
+        </div>
+        <select id="size-preset">
+          <option value="35x45mm" selected>Kuwait / UK / EU / GCC Passport (35 × 45 mm)</option>
+          <option value="40x60mm">Kuwait Civil ID / GCC Visa (40 × 60 mm)</option>
+          <option value="51x51mm">US Passport / Visa / India OCI (2 × 2 in / 51 × 51 mm)</option>
+          <option value="35x35mm">India Passport / Schengen Square (35 × 35 mm)</option>
+          <option value="33x48mm">China Visa / Passport (33 × 48 mm)</option>
+          <option value="50x70mm">Canada Passport / PR Card (50 × 70 mm)</option>
+          <option value="custom">Custom Dimensions (mm or px)...</option>
+        </select>
+
+        <div id="custom-dim-box" class="custom-dim-row hidden">
+          <input id="custom-w" type="number" min="10" max="4000" value="35" placeholder="Width" />
+          <input id="custom-h" type="number" min="10" max="4000" value="45" placeholder="Height" />
+          <select id="custom-unit">
+            <option value="mm" selected>mm</option>
+            <option value="px">px</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 2. Background Removal & Color -->
+      <div class="control-section">
+        <div class="section-label">
+          <span>2. Background</span>
+          <button id="rerun-bg-btn" class="chip-btn" style="padding: 2px 8px; font-size: 0.7rem;" disabled>Remove BG</button>
+        </div>
+        <div class="swatch-row" id="bg-swatches">
+          <button class="swatch active" data-bg="#ffffff" style="background: #ffffff;" title="Pure White (Official Default)"></button>
+          <button class="swatch" data-bg="#f1f5f9" style="background: #f1f5f9;" title="Off-White / Light Grey"></button>
+          <button class="swatch" data-bg="#dbeafe" style="background: #dbeafe;" title="Light Blue (GCC / ID)"></button>
+          <button class="swatch" data-bg="#2563eb" style="background: #2563eb;" title="Royal Blue"></button>
+          <button class="swatch" data-bg="#dc2626" style="background: #dc2626;" title="Crimson Red"></button>
+          <button class="swatch transparent-bg" data-bg="transparent" title="Transparent PNG"></button>
+          <div class="color-picker-wrap" title="Custom Background Color">
+            <input id="custom-bg-color" type="color" value="#ffffff" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Framing & Edge Refinement -->
+      <div class="control-section">
+        <div class="section-label">
+          <span>3. Position &amp; Edge Refine</span>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-top"><span>Zoom</span><span id="zoom-val">100%</span></div>
+          <input id="zoom-slider" type="range" min="40" max="260" value="100" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-top"><span>Straighten / Tilt</span><span id="rot-val">0°</span></div>
+          <input id="rot-slider" type="range" min="-15" max="15" step="0.5" value="0" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-top"><span>Hair / Edge Softness</span><span id="feather-val">1.0 px</span></div>
+          <input id="feather-slider" type="range" min="0" max="4" step="0.5" value="1" />
+        </div>
+      </div>
+
+      <!-- 4. Manual Touch-up Brush -->
+      <div class="control-section">
+        <div class="section-label">
+          <span>4. Touch-Up Brush</span>
+          <span id="brush-mode-label" style="color: var(--accent);">Off (Drag Mode)</span>
+        </div>
+        <div class="brush-bar">
+          <button class="chip-btn active" data-brush="none">✋ Move</button>
+          <button class="chip-btn" data-brush="erase">🧹 Erase BG</button>
+          <button class="chip-btn" data-brush="restore">🖌️ Restore</button>
+          <input id="brush-size" type="range" min="6" max="60" value="22" style="flex: 1; min-width: 70px;" title="Brush size" />
+        </div>
+      </div>
+
+      <!-- 5. Export Single & 4x6 Print Sheet -->
+      <div class="control-section">
+        <div class="section-label">
+          <span>5. Download</span>
+          <span id="file-size-est">~140 KB</span>
+        </div>
+        <div class="export-grid">
+          <button id="dl-jpg-btn" class="btn-primary" disabled>⬇ Single JPG</button>
+          <button id="dl-png-btn" class="btn-secondary" disabled>⬇ Single PNG</button>
+          <button id="dl-sheet-btn" class="btn-secondary export-full" disabled>
+            🖨️ Download 4×6" Printable Photo Sheet
+          </button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script type="module">
+    import { AutoModel, AutoProcessor, RawImage, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.4.0';
+
+    // Allow browser cache for downloaded ONNX model weights
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
+    // 1. PWA Manifest & Dynamic Icon
+    (function setupPWA() {
+      const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <rect width="512" height="512" rx="112" fill="#09090b"/>
+        <rect x="76" y="76" width="360" height="360" rx="64" fill="#3b82f6" opacity="0.18"/>
+        <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle"
+              font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="210" fill="#3b82f6">ID</text>
+      </svg>`;
+      const iconUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(iconSvg);
+      document.getElementById("dynamic-icon").href = iconUrl;
+      document.getElementById("apple-touch-icon").href = iconUrl;
+
+      const baseUrl = window.location.href.split("#")[0].split("?")[0];
+      const manifest = {
+        name: "PulseID Passport & ID Studio",
+        short_name: "PulseID",
+        description: "Client-side AI passport & ID background remover and resizer.",
+        start_url: baseUrl,
+        scope: baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1),
+        display: "standalone",
+        background_color: "#09090b",
+        theme_color: "#09090b",
+        icons: [
+          { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+          { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+        ]
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+      document.getElementById("dynamic-manifest").href = URL.createObjectURL(blob);
+    })();
+
+    let deferredPrompt = null;
+    const installBtn = document.getElementById("install-btn");
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.classList.remove("hidden");
+    });
+    installBtn.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") installBtn.classList.add("hidden");
+      deferredPrompt = null;
+    });
+
+    // 2. App State
+    const DPI = 300;
+    const MM_TO_PX = DPI / 25.4;
+
+    const state = {
+      origImg: null,         // HTMLImageElement
+      cutoutCanvas: null,    // Offscreen canvas with original resolution + editable alpha mask
+      bgColor: "#ffffff",
+      widthMm: 35,
+      heightMm: 45,
+      outPxW: 413,
+      outPxH: 531,
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+      rotation: 0,
+      feather: 1,
+      showGuide: true,
+      showOriginal: false,
+      brushMode: "none",     // "none" | "erase" | "restore"
+      brushSize: 22,
+      aiReady: false
+    };
+
+    let modnetModel = null;
+    let modnetProcessor = null;
+
+    // DOM References
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("file-input");
+    const uploadPrompt = document.getElementById("upload-prompt");
+    const canvas = document.getElementById("preview-canvas");
+    const ctx = canvas.getContext("2d");
+    const aiOverlay = document.getElementById("ai-overlay");
+    const aiStatusText = document.getElementById("ai-status-text");
+    const aiProgressFill = document.getElementById("ai-progress-fill");
+    const modelDot = document.getElementById("model-dot");
+    const modelStatus = document.getElementById("model-status");
+
+    // 3. Load MODNet Portrait Segmentation Model
+    async function ensureModelLoaded() {
+      if (modnetModel && modnetProcessor) return;
+      modelDot.classList.add("busy");
+      modelStatus.textContent = "Loading AI...";
+      aiOverlay.classList.remove("hidden");
+      aiStatusText.textContent = "Loading AI Portrait Model...";
+      aiProgressFill.style.width = "15%";
+
+      try {
+        modnetProcessor = await AutoProcessor.from_pretrained("Xenova/modnet");
+        aiProgressFill.style.width = "45%";
+        modnetModel = await AutoModel.from_pretrained("Xenova/modnet", {
+          progress_callback: (info) => {
+            if (info && typeof info.progress === "number") {
+              const pct = 45 + Math.round(info.progress * 0.5);
+              aiProgressFill.style.width = `${Math.min(95, pct)}%`;
+            }
+          }
+        });
+        state.aiReady = true;
+        modelDot.classList.remove("busy");
+        modelStatus.textContent = "AI Ready (Local)";
+      } catch (err) {
+        console.error(err);
+        modelDot.classList.remove("busy");
+        modelStatus.textContent = "Manual Mode";
+        throw err;
+      }
+    }
+
+    async function runBackgroundRemoval() {
+      if (!state.origImg) return;
+      aiOverlay.classList.remove("hidden");
+      aiStatusText.textContent = "Removing background...";
+      aiProgressFill.style.width = "60%";
+
+      try {
+        await ensureModelLoaded();
+        aiStatusText.textContent = "Isolating portrait...";
+        aiProgressFill.style.width = "85%";
+
+        // Downscale inference input slightly if massive (e.g. 4000px phone photo) for fast execution, then resize mask back
+        const maxSide = 1024;
+        const iw = state.origImg.naturalWidth;
+        const ih = state.origImg.naturalHeight;
+        const scale = Math.min(1, maxSide / Math.max(iw, ih));
+        const infW = Math.round(iw * scale);
+        const infH = Math.round(ih * scale);
+
+        const tmpCanvas = document.createElement("canvas");
+        tmpCanvas.width = infW;
+        tmpCanvas.height = infH;
+        tmpCanvas.getContext("2d").drawImage(state.origImg, 0, 0, infW, infH);
+
+        const rawImg = await RawImage.fromCanvas(tmpCanvas);
+        const { pixel_values } = await modnetProcessor(rawImg);
+        const { output } = await modnetModel({ input: pixel_values });
+
+        const maskRaw = await RawImage.fromTensor(output[0].mul(255).to("uint8")).resize(iw, ih);
+
+        // Build full-resolution cutout canvas
+        const cut = document.createElement("canvas");
+        cut.width = iw;
+        cut.height = ih;
+        const cctx = cut.getContext("2d");
+        cctx.drawImage(state.origImg, 0, 0);
+
+        const imgData = cctx.getImageData(0, 0, iw, ih);
+        const pixels = imgData.data;
+        const maskData = maskRaw.data;
+        const channels = maskRaw.channels || 1;
+
+        for (let i = 0, p = 0; i < pixels.length; i += 4, p += channels) {
+          pixels[i + 3] = maskData[p];
+        }
+        cctx.putImageData(imgData, 0, 0);
+        state.cutoutCanvas = cut;
+
+        aiProgressFill.style.width = "100%";
+      } catch (err) {
+        alert("Could not download the AI model (check internet connection). You can still crop, resize, and use the Erase/Restore touch-up brush.");
+        // Fallback: copy original image into cutoutCanvas so manual brush works
+        const cut = document.createElement("canvas");
+        cut.width = state.origImg.naturalWidth;
+        cut.height = state.origImg.naturalHeight;
+        cut.getContext("2d").drawImage(state.origImg, 0, 0);
+        state.cutoutCanvas = cut;
+      } finally {
+        aiOverlay.classList.add("hidden");
+        renderComposite();
+      }
+    }
+
+    // 4. Load User Image
+    function handleImageFile(file) {
+      if (!file || !file.type.startsWith("image/")) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = async () => {
+        state.origImg = img;
+        state.zoom = 1;
+        state.offsetX = 0;
+        state.offsetY = 0;
+        state.rotation = 0;
+        document.getElementById("zoom-slider").value = 100;
+        document.getElementById("zoom-val").textContent = "100%";
+        document.getElementById("rot-slider").value = 0;
+        document.getElementById("rot-val").textContent = "0°";
+
+        uploadPrompt.classList.add("hidden");
+        canvas.classList.remove("hidden");
+        document.getElementById("rerun-bg-btn").disabled = false;
+        document.getElementById("dl-jpg-btn").disabled = false;
+        document.getElementById("dl-png-btn").disabled = false;
+        document.getElementById("dl-sheet-btn").disabled = false;
+
+        renderComposite();
+        await runBackgroundRemoval();
+      };
+      img.src = url;
+    }
+
+    uploadPrompt.addEventListener("click", () => fileInput.click());
+    document.getElementById("new-photo-btn").addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (e) => handleImageFile(e.target.files[0]));
+
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("drag-active");
+    });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag-active"));
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("drag-active");
+      if (e.dataTransfer.files[0]) handleImageFile(e.dataTransfer.files[0]);
+    });
+
+    window.addEventListener("paste", (e) => {
+      const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+      if (item) handleImageFile(item.getAsFile());
+    });
+
+    // 5. Render Composite Output (Exact Pixel Dimensions + Background + Framing + ID Guide)
+    function updateDimensions() {
+      const preset = document.getElementById("size-preset").value;
+      const customBox = document.getElementById("custom-dim-box");
+      const readout = document.getElementById("dim-readout");
+
+      if (preset === "custom") {
+        customBox.classList.remove("hidden");
+        const w = Math.max(10, parseFloat(document.getElementById("custom-w").value) || 35);
+        const h = Math.max(10, parseFloat(document.getElementById("custom-h").value) || 45);
+        const unit = document.getElementById("custom-unit").value;
+        if (unit === "mm") {
+          state.widthMm = w;
+          state.heightMm = h;
+          state.outPxW = Math.round(w * MM_TO_PX);
+          state.outPxH = Math.round(h * MM_TO_PX);
+          readout.innerHTML = `Output: <strong>${w} × ${h} mm</strong> (${state.outPxW} × ${state.outPxH} px @ 300 DPI)`;
+        } else {
+          state.outPxW = Math.round(w);
+          state.outPxH = Math.round(h);
+          state.widthMm = +(w / MM_TO_PX).toFixed(1);
+          state.heightMm = +(h / MM_TO_PX).toFixed(1);
+          readout.innerHTML = `Output: <strong>${state.outPxW} × ${state.outPxH} px</strong> (${state.widthMm} × ${state.heightMm} mm)`;
+        }
+      } else {
+        customBox.classList.add("hidden");
+        const [wMm, hMm] = preset.replace("mm", "").split("x").map(Number);
+        state.widthMm = wMm;
+        state.heightMm = hMm;
+        state.outPxW = Math.round(wMm * MM_TO_PX);
+        state.outPxH = Math.round(hMm * MM_TO_PX);
+        readout.innerHTML = `Output: <strong>${wMm} × ${hMm} mm</strong> (${state.outPxW} × ${state.outPxH} px @ 300 DPI)`;
+      }
+
+      renderComposite();
+    }
+
+    function drawCleanPhotoToContext(targetCtx, w, h) {
+      targetCtx.clearRect(0, 0, w, h);
+
+      // 1. Background Fill
+      if (state.bgColor !== "transparent") {
+        targetCtx.fillStyle = state.bgColor;
+        targetCtx.fillRect(0, 0, w, h);
+      }
+
+      const source = (!state.showOriginal && state.cutoutCanvas) ? state.cutoutCanvas : state.origImg;
+      if (!source) return;
+
+      const sw = source.width || source.naturalWidth;
+      const sh = source.height || source.naturalHeight;
+
+      // Fit portrait proportionally to cover output frame
+      const baseScale = Math.max(w / sw, h / sh) * state.zoom;
+
+      targetCtx.save();
+      targetCtx.translate(w / 2 + state.offsetX, h / 2 + state.offsetY);
+      targetCtx.rotate((state.rotation * Math.PI) / 180);
+      if (!state.showOriginal && state.feather > 0) {
+        targetCtx.filter = `blur(${state.feather * 0.35}px)`;
+      }
+      targetCtx.drawImage(source, (-sw * baseScale) / 2, (-sh * baseScale) / 2, sw * baseScale, sh * baseScale);
+      targetCtx.restore();
+    }
+
+    function renderComposite() {
+      const w = state.outPxW;
+      const h = state.outPxH;
+      canvas.width = w;
+      canvas.height = h;
+
+      drawCleanPhotoToContext(ctx, w, h);
+
+      // Draw ICAO / Passport Alignment Overlay (Preview Only — never exported!)
+      if (state.origImg && state.showGuide && !state.showOriginal) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(59, 130, 246, 0.75)";
+        ctx.lineWidth = Math.max(2, w * 0.004);
+        ctx.setLineDash([w * 0.02, w * 0.015]);
+
+        // Head Oval (70% of frame height per ICAO standard)
+        const ovalW = w * 0.54;
+        const ovalH = h * 0.66;
+        const centerY = h * 0.46;
+        ctx.beginPath();
+        ctx.ellipse(w / 2, centerY, ovalW / 2, ovalH / 2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Eye-level horizontal line (~58% from bottom / 42% from top)
+        const eyeY = h * 0.43;
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.7)";
+        ctx.beginPath();
+        ctx.moveTo(w * 0.12, eyeY);
+        ctx.lineTo(w * 0.88, eyeY);
+        ctx.stroke();
+
+        // Center vertical symmetry line
+        ctx.beginPath();
+        ctx.moveTo(w / 2, h * 0.08);
+        ctx.lineTo(w / 2, h * 0.92);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      updateFileSizeEstimate();
+    }
+
+    function updateFileSizeEstimate() {
+      if (!state.origImg) return;
+      const exportCanvas = document.createElement("canvas");
+      exportCanvas.width = state.outPxW;
+      exportCanvas.height = state.outPxH;
+      drawCleanPhotoToContext(exportCanvas.getContext("2d"), state.outPxW, state.outPxH);
+      const dataUrl = exportCanvas.toDataURL("image/jpeg", 0.92);
+      const kb = Math.round((dataUrl.length * 3) / 4 / 1024);
+      document.getElementById("file-size-est").textContent = `~${kb} KB (JPG)`;
+    }
+
+    // 6. Interactive Canvas Dragging & Touch-Up Brush
+    let isPointerDown = false;
+    let lastPt = { x: 0, y: 0 };
+
+    function canvasToSourceCoords(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const cx = ((clientX - rect.left) / rect.width) * state.outPxW;
+      const cy = ((clientY - rect.top) / rect.height) * state.outPxH;
+
+      const source = state.cutoutCanvas;
+      const sw = source.width;
+      const sh = source.height;
+      const baseScale = Math.max(state.outPxW / sw, state.outPxH / sh) * state.zoom;
+
+      // Inverse transform from output canvas to source cutout canvas
+      let dx = cx - (state.outPxW / 2 + state.offsetX);
+      let dy = cy - (state.outPxH / 2 + state.offsetY);
+      const rad = (-state.rotation * Math.PI) / 180;
+      const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+      const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+      return {
+        x: rx / baseScale + sw / 2,
+        y: ry / baseScale + sh / 2,
+        scale: baseScale
+      };
+    }
+
+    function applyBrushStroke(clientX, clientY) {
+      if (!state.cutoutCanvas || !state.origImg) return;
+      const pt = canvasToSourceCoords(clientX, clientY);
+      const radius = (state.brushSize / 2) / pt.scale;
+      const cctx = state.cutoutCanvas.getContext("2d");
+
+      cctx.save();
+      if (state.brushMode === "erase") {
+        cctx.globalCompositeOperation = "destination-out";
+        cctx.beginPath();
+        cctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+        cctx.fill();
+      } else if (state.brushMode === "restore") {
+        cctx.beginPath();
+        cctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+        cctx.clip();
+        cctx.drawImage(state.origImg, 0, 0);
+      }
+      cctx.restore();
+      renderComposite();
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      if (!state.origImg) return;
+      isPointerDown = true;
+      canvas.setPointerCapture(e.pointerId);
+      lastPt = { x: e.clientX, y: e.clientY };
+      if (state.brushMode !== "none") {
+        applyBrushStroke(e.clientX, e.clientY);
+      }
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!isPointerDown) return;
+      if (state.brushMode !== "none") {
+        applyBrushStroke(e.clientX, e.clientY);
+      } else {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = state.outPxW / rect.width;
+        const scaleY = state.outPxH / rect.height;
+        state.offsetX += (e.clientX - lastPt.x) * scaleX;
+        state.offsetY += (e.clientY - lastPt.y) * scaleY;
+        lastPt = { x: e.clientX, y: e.clientY };
+        renderComposite();
+      }
+    });
+
+    canvas.addEventListener("pointerup", (e) => {
+      isPointerDown = false;
+      canvas.releasePointerCapture(e.pointerId);
+    });
+
+    // 7. UI Controls Wiring
+    document.getElementById("size-preset").addEventListener("change", updateDimensions);
+    document.getElementById("custom-w").addEventListener("input", updateDimensions);
+    document.getElementById("custom-h").addEventListener("input", updateDimensions);
+    document.getElementById("custom-unit").addEventListener("change", updateDimensions);
+
+    document.getElementById("bg-swatches").addEventListener("click", (e) => {
+      const btn = e.target.closest(".swatch");
+      if (!btn) return;
+      document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+      btn.classList.add("active");
+      state.bgColor = btn.dataset.bg;
+      renderComposite();
+    });
+
+    document.getElementById("custom-bg-color").addEventListener("input", (e) => {
+      document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+      state.bgColor = e.target.value;
+      renderComposite();
+    });
+
+    document.getElementById("zoom-slider").addEventListener("input", (e) => {
+      state.zoom = Number(e.target.value) / 100;
+      document.getElementById("zoom-val").textContent = `${e.target.value}%`;
+      renderComposite();
+    });
+
+    document.getElementById("rot-slider").addEventListener("input", (e) => {
+      state.rotation = Number(e.target.value);
+      document.getElementById("rot-val").textContent = `${state.rotation}°`;
+      renderComposite();
+    });
+
+    document.getElementById("feather-slider").addEventListener("input", (e) => {
+      state.feather = Number(e.target.value);
+      document.getElementById("feather-val").textContent = `${state.feather.toFixed(1)} px`;
+      renderComposite();
+    });
+
+    document.getElementById("reset-crop-btn").addEventListener("click", () => {
+      state.zoom = 1;
+      state.offsetX = 0;
+      state.offsetY = 0;
+      state.rotation = 0;
+      document.getElementById("zoom-slider").value = 100;
+      document.getElementById("zoom-val").textContent = "100%";
+      document.getElementById("rot-slider").value = 0;
+      document.getElementById("rot-val").textContent = "0°";
+      renderComposite();
+    });
+
+    document.getElementById("toggle-guide-btn").addEventListener("click", (e) => {
+      state.showGuide = !state.showGuide;
+      e.target.classList.toggle("active", state.showGuide);
+      renderComposite();
+    });
+
+    const compareBtn = document.getElementById("toggle-orig-btn");
+    compareBtn.addEventListener("click", () => {
+      state.showOriginal = !state.showOriginal;
+      compareBtn.classList.toggle("active", state.showOriginal);
+      renderComposite();
+    });
+
+    document.getElementById("rerun-bg-btn").addEventListener("click", runBackgroundRemoval);
+
+    // Brush mode toggles
+    document.querySelectorAll("[data-brush]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-brush]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.brushMode = btn.dataset.brush;
+        const labels = {
+          none: "Off (Drag Mode)",
+          erase: "Erase Background",
+          restore: "Restore Portrait"
+        };
+        document.getElementById("brush-mode-label").textContent = labels[state.brushMode];
+        canvas.classList.toggle("brush-mode", state.brushMode !== "none");
+      });
+    });
+
+    document.getElementById("brush-size").addEventListener("input", (e) => {
+      state.brushSize = Number(e.target.value);
+    });
+
+    // 8. Export Downloads (Single JPG, Single PNG, and 4x6" Printable Sheet)
+    function triggerDownload(dataUrl, filename) {
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = filename;
+      a.click();
+    }
+
+    document.getElementById("dl-jpg-btn").addEventListener("click", () => {
+      const out = document.createElement("canvas");
+      out.width = state.outPxW;
+      out.height = state.outPxH;
+      const octx = out.getContext("2d");
+      // JPG has no alpha channel; default to white if transparent selected
+      const prevBg = state.bgColor;
+      if (state.bgColor === "transparent") state.bgColor = "#ffffff";
+      drawCleanPhotoToContext(octx, out.width, out.height);
+      state.bgColor = prevBg;
+      triggerDownload(out.toDataURL("image/jpeg", 0.94), `ID_Photo_${state.widthMm}x${state.heightMm}mm.jpg`);
+    });
+
+    document.getElementById("dl-png-btn").addEventListener("click", () => {
+      const out = document.createElement("canvas");
+      out.width = state.outPxW;
+      out.height = state.outPxH;
+      drawCleanPhotoToContext(out.getContext("2d"), out.width, out.height);
+      triggerDownload(out.toDataURL("image/png"), `ID_Photo_${state.widthMm}x${state.heightMm}mm.png`);
+    });
+
+    document.getElementById("dl-sheet-btn").addEventListener("click", () => {
+      // Standard 4 x 6 inch print sheet @ 300 DPI = 1800 x 1200 px (landscape)
+      const sheetW = 1800;
+      const sheetH = 1200;
+      const sheet = document.createElement("canvas");
+      sheet.width = sheetW;
+      sheet.height = sheetH;
+      const sctx = sheet.getContext("2d");
+
+      sctx.fillStyle = "#ffffff";
+      sctx.fillRect(0, 0, sheetW, sheetH);
+
+      // Render single clean tile
+      const tile = document.createElement("canvas");
+      tile.width = state.outPxW;
+      tile.height = state.outPxH;
+      const prevBg = state.bgColor;
+      if (state.bgColor === "transparent") state.bgColor = "#ffffff";
+      drawCleanPhotoToContext(tile.getContext("2d"), tile.width, tile.height);
+      state.bgColor = prevBg;
+
+      const gap = 24;
+      const cols = Math.max(1, Math.floor((sheetW - gap) / (tile.width + gap)));
+      const rows = Math.max(1, Math.floor((sheetH - gap) / (tile.height + gap)));
+      const totalW = cols * tile.width + (cols - 1) * gap;
+      const totalH = rows * tile.height + (rows - 1) * gap;
+      const startX = Math.floor((sheetW - totalW) / 2);
+      const startY = Math.floor((sheetH - totalH) / 2);
+
+      sctx.strokeStyle = "#cbd5e1";
+      sctx.lineWidth = 2;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = startX + c * (tile.width + gap);
+          const y = startY + r * (tile.height + gap);
+          sctx.drawImage(tile, x, y);
+          // Subtle trim border around each photo
+          sctx.strokeRect(x, y, tile.width, tile.height);
+        }
+      }
+
+      triggerDownload(sheet.toDataURL("image/jpeg", 0.95), `ID_Print_Sheet_4x6_${cols * rows}_photos.jpg`);
+    });
+
+    // 9. Theme Toggle
+    const themeBtn = document.getElementById("theme-btn");
+    themeBtn.addEventListener("click", () => {
+      const isLight = document.documentElement.getAttribute("data-theme") === "light";
+      if (isLight) {
+        document.documentElement.removeAttribute("data-theme");
+        themeBtn.textContent = "☀️";
+      } else {
+        document.documentElement.setAttribute("data-theme", "light");
+        themeBtn.textContent = "🌙";
+      }
+    });
+
+    // Initialize default dimensions
+    updateDimensions();
+  </script>
+</body>
+</html>
