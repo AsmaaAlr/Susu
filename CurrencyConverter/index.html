@@ -1,1 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#09090b" />
+  <meta name="description" content="Clean multi-currency converter & calculator PWA." />
+  <title>PulseFX</title>
+  <link id="dynamic-manifest" rel="manifest" />
+  <link id="dynamic-icon" rel="icon" type="image/svg+xml" />
+  <link id="apple-touch-icon" rel="apple-touch-icon" />
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: #121215;
+      --row-hover: #18181c;
+      --row-active: #172033;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #fafafa;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.16);
+      --green: #10b981;
+      --amber: #f59e0b;
+      --danger: #ef4444;
+      --key-bg: #1e1e24;
+      --key-hover: #27272f;
+      --key-op: #1e293b;
+      --key-op-text: #60a5fa;
+      --keypad-bg: rgba(18, 18, 22, 0.96);
+    }
 
+    [data-theme="light"] {
+      --bg: #f4f4f5;
+      --surface: #ffffff;
+      --row-hover: #fafafa;
+      --row-active: #eff6ff;
+      --border: rgba(0, 0, 0, 0.08);
+      --text: #09090b;
+      --muted: #71717a;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.12);
+      --green: #059669;
+      --amber: #d97706;
+      --danger: #dc2626;
+      --key-bg: #f4f4f5;
+      --key-hover: #e4e4e7;
+      --key-op: #dbeafe;
+      --key-op-text: #1d4ed8;
+      --keypad-bg: rgba(255, 255, 255, 0.97);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+    }
+
+    @media (max-width: 520px) {
+      .app { border: none; }
+    }
+
+    /* Top Minimal Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-row h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--bg);
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .dot.cached { background: var(--amber); }
+
+    .header-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background 0.15s ease;
+    }
+
+    .btn-icon:hover { background: var(--row-hover); }
+
+    .btn-add {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: opacity 0.15s ease;
+    }
+
+    .btn-add:hover { opacity: 0.9; }
+
+    .btn-install {
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Currency Rows List */
+    .rows-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 320px; /* Room for calculator keypad */
+    }
+
+    .rows-container.keypad-closed {
+      padding-bottom: 40px;
+    }
+
+    .currency-row {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      transition: background 0.15s ease, transform 0.15s ease;
+      gap: 12px;
+      user-select: none;
+      position: relative;
+    }
+
+    .currency-row:hover {
+      background: var(--row-hover);
+    }
+
+    .currency-row.active {
+      background: var(--row-active);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .currency-row.dragging {
+      opacity: 0.45;
+      background: var(--row-active);
+    }
+
+    .currency-row.drag-over {
+      border-top: 2px solid var(--accent);
+    }
+
+    /* Drag Handle */
+    .drag-handle {
+      color: var(--muted);
+      cursor: grab;
+      padding: 6px 2px;
+      font-size: 1.1rem;
+      line-height: 1;
+      opacity: 0.55;
+      touch-action: none;
+      flex-shrink: 0;
+    }
+
+    .currency-row:hover .drag-handle { opacity: 1; }
+    .drag-handle:active { cursor: grabbing; }
+
+    /* Currency Label (Click to change currency) */
+    .curr-left {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      cursor: pointer;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+
+    .flag {
+      font-size: 1.65rem;
+      line-height: 1;
+    }
+
+    .curr-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .curr-code {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .curr-code svg {
+      width: 12px;
+      height: 12px;
+      opacity: 0.45;
+    }
+
+    .curr-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 130px;
+    }
+
+    /* Value Field */
+    .curr-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      min-width: 0;
+      cursor: text;
+    }
+
+    .val-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 1.45rem;
+      font-weight: 600;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-family: inherit;
+      caret-color: var(--accent);
+    }
+
+    .currency-row.active .val-input {
+      color: var(--accent);
+    }
+
+    .expr-sub {
+      font-size: 0.73rem;
+      color: var(--muted);
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+      min-height: 15px;
+    }
+
+    .row-del {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.15s ease, color 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .currency-row:hover .row-del,
+    .currency-row.active .row-del {
+      opacity: 0.7;
+    }
+
+    .row-del:hover {
+      opacity: 1 !important;
+      color: var(--danger);
+    }
+
+    @media (hover: none) {
+      .row-del { opacity: 0.55; }
+    }
+
+    /* Calculator Keypad Drawer */
+    .calc-drawer {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(0);
+      width: 100%;
+      max-width: 520px;
+      background: var(--keypad-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-top: 1px solid var(--border);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 10px 12px 16px;
+      box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+      z-index: 40;
+      transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .calc-drawer.hidden-drawer {
+      transform: translateX(-50%) translateY(105%);
+      pointer-events: none;
+    }
+
+    .calc-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px 8px;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .calc-active-badge {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .calc-hide-btn {
+      background: var(--key-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+    }
+
+    .calc-btn {
+      height: 48px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--key-bg);
+      color: var(--text);
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background 0.1s ease, transform 0.08s ease;
+      user-select: none;
+    }
+
+    .calc-btn:hover { background: var(--key-hover); }
+    .calc-btn:active { transform: scale(0.96); }
+
+    .calc-btn.op {
+      background: var(--key-op);
+      color: var(--key-op-text);
+      font-size: 1.3rem;
+    }
+
+    .calc-btn.util {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .calc-btn.eq {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-size: 1.35rem;
+    }
+
+    /* Currency Picker Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 60;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    @media (min-width: 521px) {
+      .modal-backdrop { align-items: center; padding: 20px; }
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 480px;
+      max-height: 82vh;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (min-width: 521px) {
+      .modal-sheet { border-radius: 20px; }
+    }
+
+    .modal-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-top h2 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: var(--key-bg);
+      border: none;
+      color: var(--text);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .modal-search {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.92rem;
+      outline: none;
+    }
+
+    .modal-search:focus { border-color: var(--accent); }
+
+    .modal-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .picker-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .picker-item:hover { background: var(--row-hover); }
+
+    .picker-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .picker-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .picker-badge.added { color: var(--green); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title-group">
+        <div class="title-row">
+          <h1>PulseFX</h1>
+          <span class="live-pill">
+            <span id="status-dot" class="dot"></span>
+            <span id="status-text">Live</span>
+          </span>
+        </div>
+      </div>
+      <div class="header-btns">
+        <button id="install-btn" class="btn-install hidden">Install</button>
+        <button id="refresh-btn" class="btn-icon" title="Refresh rates">↻</button>
+        <button id="theme-btn" class="btn-icon" title="Theme">☀️</button>
+        <button id="open-add-btn" class="btn-add">+ Currency</button>
+      </div>
+    </header>
+
+    <div id="rows-container" class="rows-container keypad-closed"></div>
+  </div>
+
+  <!-- Calculator Keypad Drawer -->
+  <div id="calc-drawer" class="calc-drawer hidden-drawer" role="region" aria-label="Calculator keypad">
+    <div class="calc-topbar">
+      <span>Editing <span id="calc-curr-label" class="calc-active-badge">USD</span> · <span id="calc-preview-text">100</span></span>
+      <button id="hide-calc-btn" class="calc-hide-btn">Done</button>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-btn util" data-key="C">C</button>
+      <button class="calc-btn util" data-key="PAR">( )</button>
+      <button class="calc-btn util" data-key="BACK">⌫</button>
+      <button class="calc-btn op" data-key="/">÷</button>
+
+      <button class="calc-btn" data-key="7">7</button>
+      <button class="calc-btn" data-key="8">8</button>
+      <button class="calc-btn" data-key="9">9</button>
+      <button class="calc-btn op" data-key="*">×</button>
+
+      <button class="calc-btn" data-key="4">4</button>
+      <button class="calc-btn" data-key="5">5</button>
+      <button class="calc-btn" data-key="6">6</button>
+      <button class="calc-btn op" data-key="-">−</button>
+
+      <button class="calc-btn" data-key="1">1</button>
+      <button class="calc-btn" data-key="2">2</button>
+      <button class="calc-btn" data-key="3">3</button>
+      <button class="calc-btn op" data-key="+">+</button>
+
+      <button class="calc-btn" data-key="00">00</button>
+      <button class="calc-btn" data-key="0">0</button>
+      <button class="calc-btn" data-key=".">.</button>
+      <button class="calc-btn eq" data-key="=">=</button>
+    </div>
+  </div>
+
+  <!-- Currency Selector Modal -->
+  <div id="picker-modal" class="modal-backdrop hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-top">
+          <h2 id="modal-title">Add Currency</h2>
+          <button id="close-modal-btn" class="modal-close">✕</button>
+        </div>
+        <input id="modal-search" class="modal-search" type="text" placeholder="Search code or country (e.g. KWD, USD, Euro, Yen)..." autocomplete="off" />
+      </div>
+      <div id="modal-list" class="modal-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // 1. PWA Manifest & Dynamic SVG Icon
+    (function setupPWA() {
+      const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <rect width="512" height="512" rx="112" fill="#09090b"/>
+        <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle"
+              font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="210" fill="#3b82f6">FX</text>
+      </svg>`;
+      const iconUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(iconSvg);
+      document.getElementById("dynamic-icon").href = iconUrl;
+      document.getElementById("apple-touch-icon").href = iconUrl;
+
+      const baseUrl = window.location.href.split("#")[0].split("?")[0];
+      const manifest = {
+        name: "PulseFX Currency Calculator",
+        short_name: "PulseFX",
+        description: "Multi-currency converter & calculator.",
+        start_url: baseUrl,
+        scope: baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1),
+        display: "standalone",
+        background_color: "#09090b",
+        theme_color: "#09090b",
+        icons: [
+          { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+          { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+        ]
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+      document.getElementById("dynamic-manifest").href = URL.createObjectURL(blob);
+
+      if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+        fetch("./sw.js", { method: "HEAD" })
+          .then(res => { if (res.ok) navigator.serviceWorker.register("./sw.js"); })
+          .catch(() => {});
+      }
+    })();
+
+    // PWA Install Prompt
+    let deferredPrompt = null;
+    const installBtn = document.getElementById("install-btn");
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.classList.remove("hidden");
+    });
+    installBtn.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") installBtn.classList.add("hidden");
+      deferredPrompt = null;
+    });
+
+    // 2. Safe Arithmetic Parser
+    function evaluateExpr(raw, allowPartial = true) {
+      if (!raw) return { value: 0, isExpr: false, valid: true };
+      let s = String(raw)
+        .replace(/,/g, "")
+        .replace(/[×xX]/g, "*")
+        .replace(/[÷]/g, "/")
+        .replace(/[−–—]/g, "-")
+        .trim();
+
+      if (!s) return { value: 0, isExpr: false, valid: true };
+      const isExpr = /[+\-*/%()]/.test(s.replace(/^-/, ""));
+
+      if (allowPartial) {
+        let prev;
+        do {
+          prev = s;
+          s = s.replace(/[+\-*/%.(\s]+$/, "");
+        } while (s !== prev);
+        const open = (s.match(/\(/g) || []).length;
+        const close = (s.match(/\)/g) || []).length;
+        if (open > close) s += ")".repeat(open - close);
+      }
+
+      if (!s) return { value: 0, isExpr, valid: true };
+
+      const tokens = [];
+      let i = 0;
+      while (i < s.length) {
+        const ch = s[i];
+        if (/\s/.test(ch)) { i++; continue; }
+        if (/[0-9.]/.test(ch)) {
+          let num = "", dots = 0;
+          while (i < s.length && /[0-9.]/.test(s[i])) {
+            if (s[i] === ".") dots++;
+            if (dots > 1) return { value: NaN, isExpr, valid: false };
+            num += s[i++];
+          }
+          tokens.push({ t: "n", v: parseFloat(num) });
+          continue;
+        }
+        if ("+-*/%()".includes(ch)) {
+          tokens.push({ t: "o", v: ch });
+          i++;
+          continue;
+        }
+        return { value: NaN, isExpr, valid: false };
+      }
+
+      let p = 0;
+      const peek = () => tokens[p];
+      const next = () => tokens[p++];
+
+      function expr() {
+        let l = term();
+        while (peek() && (peek().v === "+" || peek().v === "-")) {
+          const op = next().v;
+          const r = term();
+          l = op === "+" ? l + r : l - r;
+        }
+        return l;
+      }
+      function term() {
+        let l = unary();
+        while (peek() && (peek().v === "*" || peek().v === "/" || peek().v === "%")) {
+          const op = next().v;
+          const r = unary();
+          if (op === "*") l *= r;
+          else if (op === "/") l = r === 0 ? NaN : l / r;
+          else l %= r;
+        }
+        return l;
+      }
+      function unary() {
+        if (peek() && peek().v === "+") { next(); return unary(); }
+        if (peek() && peek().v === "-") { next(); return -unary(); }
+        return primary();
+      }
+      function primary() {
+        const tok = peek();
+        if (!tok) return NaN;
+        if (tok.t === "n") {
+          next();
+          if (peek() && peek().v === "(") return tok.v * primary();
+          return tok.v;
+        }
+        if (tok.v === "(") {
+          next();
+          const v = expr();
+          if (!peek() || peek().v !== ")") return NaN;
+          next();
+          return v;
+        }
+        return NaN;
+      }
+
+      const val = expr();
+      if (p !== tokens.length || !isFinite(val)) return { value: NaN, isExpr, valid: false };
+      return { value: val, isExpr, valid: true };
+    }
+
+    // 3. State & Storage
+    const RATES_KEY = "pulsefx_rates_v3";
+    const PREFS_KEY = "pulsefx_prefs_v3";
+    const DEFAULTS = ["KWD", "USD", "EUR", "GBP", "SAR", "AED"];
+
+    const state = {
+      rates: {},
+      currencies: [...DEFAULTS],
+      activeCode: "USD",
+      rawExpr: "100",
+      numValue: 100,
+      keypadOpen: false,
+      freshFocus: false,
+      replaceTargetCode: null
+    };
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+      if (Array.isArray(saved.currencies) && saved.currencies.length) state.currencies = saved.currencies;
+      if (saved.activeCode) state.activeCode = saved.activeCode;
+      if (typeof saved.numValue === "number" && isFinite(saved.numValue)) {
+        state.numValue = saved.numValue;
+        state.rawExpr = String(saved.numValue);
+      }
+      if (saved.theme === "light") document.documentElement.setAttribute("data-theme", "light");
+    } catch {}
+
+    function savePrefs() {
+      try {
+        localStorage.setItem(PREFS_KEY, JSON.stringify({
+          currencies: state.currencies,
+          activeCode: state.activeCode,
+          numValue: state.numValue,
+          theme: document.documentElement.getAttribute("data-theme") || "dark"
+        }));
+      } catch {}
+    }
+
+    const displayNames = (() => {
+      try { return new Intl.DisplayNames(["en"], { type: "currency" }); }
+      catch { return null; }
+    })();
+
+    function currName(code) {
+      try { return (displayNames && displayNames.of(code)) || code; }
+      catch { return code; }
+    }
+
+    function flagFor(code) {
+      const map = {
+        USD: "🇺🇸", EUR: "🇪🇺", GBP: "🇬🇧", KWD: "🇰🇼", SAR: "🇸🇦",
+        AED: "🇦🇪", JPY: "🇯🇵", CAD: "🇨🇦", AUD: "🇦🇺", CHF: "🇨🇭",
+        INR: "🇮🇳", CNY: "🇨🇳", QAR: "🇶🇦", BHD: "🇧🇭", OMR: "🇴🇲", EGP: "🇪🇬"
+      };
+      if (map[code]) return map[code];
+      const cc = code.slice(0, 2);
+      if (!/^[A-Z]{2}$/.test(cc)) return "💱";
+      return String.fromCodePoint(...[...cc].map(c => 127397 + c.charCodeAt(0)));
+    }
+
+    function rateBetween(from, to) {
+      const a = state.rates[from], b = state.rates[to];
+      return (a && b) ? b / a : 0;
+    }
+
+    function fmtDisplay(num) {
+      if (!isFinite(num) || num === 0) return "0";
+      if (Math.abs(num) >= 1) return Number(num.toFixed(4)).toLocaleString(undefined, { maximumFractionDigits: 4 });
+      return Number(num.toPrecision(5)).toString();
+    }
+
+    function fmtPlain(num) {
+      if (!isFinite(num) || num === 0) return "0";
+      if (Math.abs(num) >= 1) return String(Number(num.toFixed(4)));
+      return String(Number(num.toPrecision(5)));
+    }
+
+    // 4. Fetch Public Live Rates
+    const statusDot = document.getElementById("status-dot");
+    const statusText = document.getElementById("status-text");
+
+    async function fetchRates() {
+      statusText.textContent = "Updating...";
+      statusDot.classList.remove("cached");
+      try {
+        const r = await fetch("https://open.er-api.com/v6/latest/USD");
+        if (!r.ok) throw new Error();
+        const d = await r.json();
+        if (d && d.rates) {
+          state.rates = d.rates;
+          localStorage.setItem(RATES_KEY, JSON.stringify({ rates: d.rates, ts: Date.now() }));
+          statusText.textContent = "Live";
+          initBoard();
+          return;
+        }
+      } catch {}
+
+      try {
+        const r2 = await fetch("https://api.frankfurter.app/latest?from=USD");
+        if (!r2.ok) throw new Error();
+        const d2 = await r2.json();
+        if (d2 && d2.rates) {
+          state.rates = { USD: 1, ...d2.rates };
+          localStorage.setItem(RATES_KEY, JSON.stringify({ rates: state.rates, ts: Date.now() }));
+          statusText.textContent = "Live (ECB)";
+          initBoard();
+          return;
+        }
+      } catch {}
+
+      try {
+        const cached = JSON.parse(localStorage.getItem(RATES_KEY) || "null");
+        if (cached && cached.rates) {
+          state.rates = cached.rates;
+          statusDot.classList.add("cached");
+          statusText.textContent = "Offline";
+          initBoard();
+          return;
+        }
+      } catch {}
+      statusDot.classList.add("cached");
+      statusText.textContent = "Offline";
+    }
+
+    function initBoard() {
+      state.currencies = state.currencies.filter(c => state.rates[c]);
+      if (!state.currencies.length) state.currencies = ["USD", "EUR"].filter(c => state.rates[c]);
+      if (!state.currencies.includes(state.activeCode)) state.activeCode = state.currencies[0];
+      renderRows();
+    }
+
+    // 5. Render Clean Currency Rows
+    const rowsEl = document.getElementById("rows-container");
+    const calcDrawer = document.getElementById("calc-drawer");
+    const calcCurrLabel = document.getElementById("calc-curr-label");
+    const calcPreviewText = document.getElementById("calc-preview-text");
+
+    function renderRows() {
+      rowsEl.innerHTML = state.currencies.map(code => {
+        const active = code === state.activeCode;
+        const rate = rateBetween(state.activeCode, code);
+        const val = active ? state.rawExpr : fmtDisplay(state.numValue * rate);
+        const sub = active ? "" : `1 ${state.activeCode} = ${fmtDisplay(rate)} ${code}`;
+
+        return `
+          <div class="currency-row ${active ? "active" : ""}" data-code="${code}" draggable="true">
+            <div class="drag-handle" title="Drag to reorder">≡</div>
+            <div class="curr-left" data-action="change-curr" data-code="${code}" title="Tap to change currency">
+              <span class="flag">${flagFor(code)}</span>
+              <div class="curr-text">
+                <span class="curr-code">
+                  ${code}
+                  <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+                </span>
+                <span class="curr-sub">${currName(code)}</span>
+              </div>
+            </div>
+            <div class="curr-right" data-action="edit-val" data-code="${code}">
+              <input
+                class="val-input"
+                type="text"
+                inputmode="none"
+                data-code="${code}"
+                value="${escapeHtml(val)}"
+                aria-label="${code} value"
+              />
+              <div class="expr-sub" data-sub="${code}">${sub}</div>
+            </div>
+            ${state.currencies.length > 1 ? `<button class="row-del" data-action="delete" data-code="${code}" title="Remove">✕</button>` : ""}
+          </div>
+        `;
+      }).join("");
+
+      updateLiveValues();
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function openKeypad() {
+      state.keypadOpen = true;
+      calcDrawer.classList.remove("hidden-drawer");
+      rowsEl.classList.remove("keypad-closed");
+    }
+
+    function closeKeypad() {
+      commitExpr();
+      state.keypadOpen = false;
+      calcDrawer.classList.add("hidden-drawer");
+      rowsEl.classList.add("keypad-closed");
+    }
+
+    function activateCurrency(code, shouldOpenKeypad = true) {
+      if (state.activeCode !== code) {
+        const converted = state.numValue * rateBetween(state.activeCode, code);
+        state.activeCode = code;
+        state.numValue = converted;
+        state.rawExpr = fmtPlain(converted);
+        state.freshFocus = true;
+        renderRows();
+      } else {
+        state.freshFocus = true;
+      }
+
+      if (shouldOpenKeypad) openKeypad();
+      const input = rowsEl.querySelector(`.val-input[data-code="${code}"]`);
+      if (input) {
+        input.focus({ preventScroll: true });
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+      updateLiveValues();
+    }
+
+    function updateLiveValues() {
+      const parsed = evaluateExpr(state.rawExpr, true);
+      if (parsed.valid) state.numValue = parsed.value;
+
+      calcCurrLabel.textContent = state.activeCode;
+      calcPreviewText.textContent = parsed.valid
+        ? `${fmtDisplay(state.numValue)} ${state.activeCode}`
+        : "Invalid expression";
+
+      rowsEl.querySelectorAll(".currency-row").forEach(row => {
+        const code = row.dataset.code;
+        const isAct = code === state.activeCode;
+        row.classList.toggle("active", isAct);
+        const input = row.querySelector(".val-input");
+        const subEl = row.querySelector(".expr-sub");
+        const rate = rateBetween(state.activeCode, code);
+
+        if (isAct) {
+          if (input && input.value !== state.rawExpr) input.value = state.rawExpr;
+          if (subEl) {
+            subEl.textContent = parsed.isExpr && parsed.valid
+              ? `= ${fmtDisplay(state.numValue)}`
+              : "";
+          }
+        } else {
+          if (input) input.value = fmtDisplay(state.numValue * rate);
+          if (subEl) subEl.textContent = `1 ${state.activeCode} = ${fmtDisplay(rate)} ${code}`;
+        }
+      });
+
+      savePrefs();
+    }
+
+    function commitExpr() {
+      const parsed = evaluateExpr(state.rawExpr, true);
+      if (parsed.valid) {
+        state.numValue = parsed.value;
+        state.rawExpr = fmtPlain(parsed.value);
+        state.freshFocus = true;
+        updateLiveValues();
+      }
+    }
+
+    // 6. Row Click & Physical Keyboard Input
+    rowsEl.addEventListener("click", (e) => {
+      const delBtn = e.target.closest("[data-action='delete']");
+      if (delBtn) {
+        const code = delBtn.dataset.code;
+        if (state.currencies.length <= 1) return;
+        if (state.activeCode === code) {
+          const nextCode = state.currencies.find(c => c !== code);
+          state.numValue = state.numValue * rateBetween(code, nextCode);
+          state.activeCode = nextCode;
+          state.rawExpr = fmtPlain(state.numValue);
+        }
+        state.currencies = state.currencies.filter(c => c !== code);
+        savePrefs();
+        renderRows();
+        return;
+      }
+
+      const changeBtn = e.target.closest("[data-action='change-curr']");
+      if (changeBtn) {
+        openPicker(changeBtn.dataset.code);
+        return;
+      }
+
+      const row = e.target.closest(".currency-row");
+      if (row && !e.target.closest(".drag-handle")) {
+        activateCurrency(row.dataset.code, true);
+      }
+    });
+
+    // Support physical keyboard typing directly into active input
+    rowsEl.addEventListener("input", (e) => {
+      const input = e.target.closest(".val-input");
+      if (!input) return;
+      state.activeCode = input.dataset.code;
+      state.rawExpr = input.value;
+      state.freshFocus = false;
+      updateLiveValues();
+    });
+
+    rowsEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commitExpr();
+      } else if (e.key === "Escape") {
+        closeKeypad();
+      }
+    });
+
+    // 7. Calculator Keypad Logic
+    document.getElementById("hide-calc-btn").addEventListener("click", closeKeypad);
+
+    document.querySelector(".calc-grid").addEventListener("click", (e) => {
+      const btn = e.target.closest(".calc-btn");
+      if (!btn) return;
+      const key = btn.dataset.key;
+      const isOp = ["+", "-", "*", "/"].includes(key);
+
+      if (key === "C") {
+        state.rawExpr = "0";
+        state.numValue = 0;
+        state.freshFocus = true;
+        updateLiveValues();
+        return;
+      }
+
+      if (key === "=") {
+        commitExpr();
+        return;
+      }
+
+      if (key === "BACK") {
+        state.freshFocus = false;
+        let s = state.rawExpr.trimEnd();
+        s = s.slice(0, -1).trimEnd();
+        state.rawExpr = s || "0";
+        updateLiveValues();
+        return;
+      }
+
+      if (key === "PAR") {
+        const open = (state.rawExpr.match(/\(/g) || []).length;
+        const close = (state.rawExpr.match(/\)/g) || []).length;
+        const lastChar = state.rawExpr.trim().slice(-1);
+        const charToAdd = (open > close && /[0-9)]/.test(lastChar)) ? ")" : "(";
+        if (state.freshFocus && charToAdd === "(") {
+          state.rawExpr = "(";
+        } else {
+          state.rawExpr += charToAdd;
+        }
+        state.freshFocus = false;
+        updateLiveValues();
+        return;
+      }
+
+      // Digits, dot, or operators
+      if (state.freshFocus) {
+        if (isOp) {
+          // Continue calculating from existing value! e.g. 100 -> + 50
+          state.rawExpr = `${state.rawExpr} ${key} `;
+        } else {
+          // Start fresh number when tapping digits right after focusing a row
+          state.rawExpr = key === "." ? "0." : (key === "00" ? "0" : key);
+        }
+        state.freshFocus = false;
+      } else {
+        if (isOp) {
+          // Replace trailing operator if user taps another operator consecutively
+          state.rawExpr = state.rawExpr.replace(/\s*[+\-*/]\s*$/, "") + ` ${key} `;
+        } else {
+          if (state.rawExpr === "0" && key !== ".") {
+            state.rawExpr = key === "00" ? "0" : key;
+          } else {
+            state.rawExpr += key;
+          }
+        }
+      }
+
+      updateLiveValues();
+    });
+
+    // 8. Drag & Drop Reordering (Desktop HTML5 Drag + Mobile Touch Drag)
+    let draggedCode = null;
+
+    rowsEl.addEventListener("dragstart", (e) => {
+      const row = e.target.closest(".currency-row");
+      if (!row) return;
+      draggedCode = row.dataset.code;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    rowsEl.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      const targetRow = e.target.closest(".currency-row");
+      rowsEl.querySelectorAll(".currency-row").forEach(r => r.classList.remove("drag-over"));
+      if (targetRow && targetRow.dataset.code !== draggedCode) {
+        targetRow.classList.add("drag-over");
+      }
+    });
+
+    rowsEl.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const targetRow = e.target.closest(".currency-row");
+      if (targetRow && draggedCode && targetRow.dataset.code !== draggedCode) {
+        reorderCurrencies(draggedCode, targetRow.dataset.code);
+      }
+      cleanupDrag();
+    });
+
+    rowsEl.addEventListener("dragend", cleanupDrag);
+
+    function cleanupDrag() {
+      draggedCode = null;
+      rowsEl.querySelectorAll(".currency-row").forEach(r => {
+        r.classList.remove("dragging", "drag-over");
+      });
+    }
+
+    // Touch reordering via drag handle
+    let touchDragCode = null;
+    rowsEl.addEventListener("touchstart", (e) => {
+      const handle = e.target.closest(".drag-handle");
+      if (!handle) return;
+      const row = handle.closest(".currency-row");
+      touchDragCode = row.dataset.code;
+      row.classList.add("dragging");
+    }, { passive: true });
+
+    rowsEl.addEventListener("touchmove", (e) => {
+      if (!touchDragCode) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetRow = el && el.closest(".currency-row");
+      rowsEl.querySelectorAll(".currency-row").forEach(r => r.classList.remove("drag-over"));
+      if (targetRow && targetRow.dataset.code !== touchDragCode) {
+        targetRow.classList.add("drag-over");
+      }
+    }, { passive: false });
+
+    rowsEl.addEventListener("touchend", (e) => {
+      if (!touchDragCode) return;
+      const overRow = rowsEl.querySelector(".currency-row.drag-over");
+      if (overRow) {
+        reorderCurrencies(touchDragCode, overRow.dataset.code);
+      }
+      touchDragCode = null;
+      cleanupDrag();
+    });
+
+    function reorderCurrencies(fromCode, toCode) {
+      const list = [...state.currencies];
+      const fromIdx = list.indexOf(fromCode);
+      const toIdx = list.indexOf(toCode);
+      if (fromIdx === -1 || toIdx === -1) return;
+      list.splice(fromIdx, 1);
+      list.splice(toIdx, 0, fromCode);
+      state.currencies = list;
+      savePrefs();
+      renderRows();
+    }
+
+    // 9. Currency Picker Modal (Add new or replace row currency)
+    const modal = document.getElementById("picker-modal");
+    const modalTitle = document.getElementById("modal-title");
+    const modalSearch = document.getElementById("modal-search");
+    const modalList = document.getElementById("modal-list");
+
+    function openPicker(replaceCode = null) {
+      state.replaceTargetCode = replaceCode;
+      modalTitle.textContent = replaceCode ? `Replace ${replaceCode}` : "Add Currency";
+      modalSearch.value = "";
+      renderPickerList("");
+      modal.classList.remove("hidden");
+      setTimeout(() => modalSearch.focus(), 50);
+    }
+
+    function closePicker() {
+      modal.classList.add("hidden");
+      state.replaceTargetCode = null;
+    }
+
+    function renderPickerList(query) {
+      const q = query.trim().toLowerCase();
+      const codes = Object.keys(state.rates).sort().filter(code =>
+        !q || code.toLowerCase().includes(q) || currName(code).toLowerCase().includes(q)
+      );
+
+      modalList.innerHTML = codes.map(code => {
+        const added = state.currencies.includes(code);
+        return `
+          <div class="picker-item" data-code="${code}">
+            <div class="picker-left">
+              <span class="flag">${flagFor(code)}</span>
+              <div>
+                <div style="font-weight:700; font-size:0.95rem;">${code}</div>
+                <div style="font-size:0.76rem; color:var(--muted);">${currName(code)}</div>
+              </div>
+            </div>
+            <span class="picker-badge ${added ? "added" : ""}">${added ? "Added" : "+ Select"}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    document.getElementById("open-add-btn").addEventListener("click", () => openPicker(null));
+    document.getElementById("close-modal-btn").addEventListener("click", closePicker);
+    modal.addEventListener("click", (e) => { if (e.target === modal) closePicker(); });
+    modalSearch.addEventListener("input", () => renderPickerList(modalSearch.value));
+
+    modalList.addEventListener("click", (e) => {
+      const item = e.target.closest(".picker-item");
+      if (!item) return;
+      const chosen = item.dataset.code;
+
+      if (state.replaceTargetCode) {
+        const idx = state.currencies.indexOf(state.replaceTargetCode);
+        if (idx !== -1) {
+          // Avoid duplicates if chosen is already in list
+          state.currencies = state.currencies.filter(c => c !== chosen || c === state.replaceTargetCode);
+          const newIdx = state.currencies.indexOf(state.replaceTargetCode);
+          state.currencies[newIdx] = chosen;
+          if (state.activeCode === state.replaceTargetCode) {
+            state.activeCode = chosen;
+            state.rawExpr = fmtPlain(state.numValue);
+          }
+        }
+      } else if (!state.currencies.includes(chosen)) {
+        state.currencies.push(chosen);
+      }
+
+      savePrefs();
+      renderRows();
+      closePicker();
+    });
+
+    // 10. Refresh & Theme
+    document.getElementById("refresh-btn").addEventListener("click", fetchRates);
+
+    const themeBtn = document.getElementById("theme-btn");
+    function syncThemeIcon() {
+      const light = document.documentElement.getAttribute("data-theme") === "light";
+      themeBtn.textContent = light ? "🌙" : "☀️";
+    }
+    syncThemeIcon();
+
+    themeBtn.addEventListener("click", () => {
+      const light = document.documentElement.getAttribute("data-theme") === "light";
+      if (light) document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.setAttribute("data-theme", "light");
+      syncThemeIcon();
+      savePrefs();
+    });
+
+    // Boot
+    fetchRates();
+  </script>
+</body>
+</html>
